@@ -146,16 +146,21 @@ function checkCitationRecency(citations: EnhancedCitation[]): QualityCheck {
 function checkRequiredSections(content: string, template: ArticleTemplate): QualityCheck {
   // Look for HEADING-LIKE occurrences only. This is a BLOCKING check, so it must
   // never pass on the section name appearing in body prose. Accepted forms, each
-  // anchored to the start of a line:
-  //   - markdown heading:  "## Treatment Options"
-  //   - bold-line heading: "**Treatment Options**"
-  //   - bare-line heading: the section title alone on its own line
+  // anchored to the start of a line (second-pass review widened these — h1–h6,
+  // an optional "1." numbering prefix, HTML <hN> tags, and a trailing colon are
+  // all legitimate heading conventions in the existing corpus):
+  //   - markdown heading:  "## Treatment Options", "#### 2. Treatment Options"
+  //   - bold-line heading: "**Treatment Options**", "**1. Treatment Options:**"
+  //   - HTML heading:      "<h2>Treatment Options</h2>"
+  //   - bare-line heading: the section title alone on its own line (":" allowed)
   const headingPatterns = template.requiredSections.map((section) => {
     const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const num = '(?:\\d+[.)]\\s*)?'; // optional "1." / "2)" numbering prefix
     return {
       section,
       pattern: new RegExp(
-        `(^|\\n)\\s*(?:#{1,3}\\s*|\\*\\*\\s*)${escaped}|(^|\\n)\\s*${escaped}\\s*(?:\\n|$)`,
+        `(^|\\n)\\s*(?:#{1,6}\\s*${num}|\\*\\*\\s*${num}|<h[1-6][^>]*>\\s*${num})${escaped}` +
+          `|(^|\\n)\\s*${num}${escaped}\\s*:?\\s*(?:\\n|$)`,
         'i',
       ),
     };

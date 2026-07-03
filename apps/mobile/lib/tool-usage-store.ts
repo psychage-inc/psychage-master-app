@@ -49,9 +49,11 @@ function sanitize(parsed: unknown): ToolUsageData | null {
   return { installedAt: e.installedAt, usage };
 }
 
-// Read-only: getters must not write (PR-006 — the old seeding storage.set here
-// meant every read stamped storage). The fresh default is persisted on the
-// first explicit recordUse instead, which pins installedAt at first use.
+// The seed IS written on first read: installedAt anchors the dormant-tool nudge
+// (`since = now - installedAt` for tools never opened), so a per-call
+// Date.now() fallback would keep resetting the baseline and the nudge could
+// never fire (second-pass review of PR-006). The PR-006 hardening (validate
+// before trust) stays; only a missing/corrupt blob triggers the seed write.
 function getStoredData(): ToolUsageData {
   const raw = storage.get(STORAGE_KEY);
   if (raw) {
@@ -59,10 +61,12 @@ function getStoredData(): ToolUsageData {
       const validated = sanitize(JSON.parse(raw));
       if (validated) return validated;
     } catch {
-      // fall through to the fresh default
+      // fall through to the fresh seed
     }
   }
-  return { installedAt: Date.now(), usage: {} };
+  const seeded: ToolUsageData = { installedAt: Date.now(), usage: {} };
+  storage.set(STORAGE_KEY, JSON.stringify(seeded));
+  return seeded;
 }
 
 export const toolUsageStore = {

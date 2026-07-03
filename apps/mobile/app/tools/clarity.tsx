@@ -35,6 +35,12 @@ export default function ClarityRoute() {
     return previous;
   };
 
+  // Same-sitting re-completion (BACK from results → re-answer) replaces the
+  // just-saved snapshot so the persisted record matches the dashboard.
+  const replaceLatestResult = (result: ClarityResult): void => {
+    store.replaceLatest(result);
+  };
+
   // History for the dashboard's History tab — newest first, adapted to the web's
   // ClarityHistoryItem shape (label derived from the composite). Reads the FULL
   // stored history (the store caps at CLARITY_HISTORY_CAP): the History tab's
@@ -64,6 +70,7 @@ export default function ClarityRoute() {
         onRecommend={(route) => router.push(route as never)}
         onViewHistory={() => router.push('/tools/clarity-history')}
         saveResult={saveResult}
+        replaceLatestResult={replaceLatestResult}
         getHistory={getHistory}
         hasHistory={hasHistory}
       />

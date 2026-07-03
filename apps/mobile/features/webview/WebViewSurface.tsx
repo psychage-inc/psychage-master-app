@@ -72,6 +72,7 @@ export function WebViewSurface({ surface, params, issuer = stubWvtIssuer }: WebV
   // gated case now renders an honest "not available yet" state instead.
   const start = useCallback(async () => {
     dispatch({ type: 'START' });
+    setUnavailable(false); // a later successful issuance must not stay stuck on the gated state
     setAttempt((a) => a + 1);
     try {
       const issue = await issuer.issue(surface);

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 
 import { PdfPreview } from '@/components/therapist/PdfPreview';
@@ -125,7 +125,12 @@ export default function PreviewScreen() {
     return { from, to, entries, terrainDays, dayCount, entryCount };
   }, [days]);
 
+  // Double-tap guard: a second generateAndShare while the sheet is opening
+  // resolves {ok:false} on Android and would fire a spurious failure alert.
+  const sharingRef = useRef(false);
   const handleShare = (fullName: string, includeTools: boolean) => {
+    if (sharingRef.current) return;
+    sharingRef.current = true;
     const html = buildTherapistPdfHtml({
       fullName,
       from: data.from,
@@ -135,6 +140,7 @@ export default function PreviewScreen() {
       tools: includeTools ? buildToolSummaries(data.from, data.to) : undefined,
     });
     void generateAndShare(html, expoPdfPrinter).then((result) => {
+      sharingRef.current = false;
       // Same calm feedback as every other export surface (PR-025) — a failed
       // print/share must not be a silent no-op.
       if (!result.ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);

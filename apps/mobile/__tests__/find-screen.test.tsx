@@ -64,10 +64,12 @@ describe('S28 Find — prototype port', () => {
     fireEvent.press(screen.getByText('Enter my state instead'));
     expect(screen.getByText('Which state?')).toBeTruthy();
 
-    // Blip offline: fallback overlays, wizard stays mounted underneath.
+    // Blip offline: fallback overlays, wizard stays mounted underneath —
+    // hidden from the a11y tree (importantForAccessibility/no-hide-descendants,
+    // second-pass a11y fix), so the query must opt into hidden elements.
     setNetOnline(false);
     expect(screen.getByTestId('find-offline')).toBeTruthy();
-    expect(screen.getByText('Which state?')).toBeTruthy();
+    expect(screen.getByText('Which state?', { includeHiddenElements: true })).toBeTruthy();
 
     // Reconnect: overlay gone, step state preserved.
     setNetOnline(true);

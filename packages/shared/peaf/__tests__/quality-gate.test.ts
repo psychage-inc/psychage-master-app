@@ -201,6 +201,25 @@ describe('runQualityGate', () => {
       const sectionCheck = result.checks.find((c) => c.id === 'required_sections');
       expect(sectionCheck?.status).toBe('pass');
     });
+
+    it('accepts h4/h6, numbered, colon-suffixed, and HTML heading conventions (second-pass widening)', () => {
+      const sections = [
+        '#### Overview\nContent here.',
+        '**1. Signs & Symptoms**\nContent here.',
+        'Causes & Risk Factors:\nContent here.', // bare line with trailing colon
+        '###### 2) Diagnosis\nContent here.',
+        '<h2>Treatment Options</h2>\nContent here.',
+        '## 3. Living With\nContent here.',
+        'When to Seek Help\nContent here.',
+        '## References\nContent here.',
+      ];
+      const padding = Array(300).fill('This is a simple sentence about mental health.').join(' ');
+      const result = runQualityGate(
+        makeInput({ content: sections.join('\n\n') + '\n\n' + padding }),
+      );
+      const sectionCheck = result.checks.find((c) => c.id === 'required_sections');
+      expect(sectionCheck?.status).toBe('pass');
+    });
   });
 
   describe('readability blocking contract', () => {

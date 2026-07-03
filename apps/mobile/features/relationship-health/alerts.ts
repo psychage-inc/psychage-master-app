@@ -34,21 +34,32 @@ export function checkDVSafety(
   trustSafetySubScore: number,
   fourHorsemen: FourHorsemenResult | null,
 ): DVAlertResult {
+  // PR-020 interaction (second-pass review): a SKIPPED item must not satisfy a
+  // trigger conjunct. The old `?? 3` default made an unanswered p_ts_02 pass
+  // trigger 3's `safetyRaw <= 3`, and renormalized domain scores can now reach
+  // <25 from a single answered item — together firing the DV modal on runs where
+  // every distress/safety item was skipped. An ANSWERED low item keeps firing
+  // exactly as before; only fabricated endorsements are removed.
+  const safetyAnswered = answers.p_ts_02 !== undefined;
+  const contemptAnswered = answers.p_ap_02 !== undefined;
   const safetyRaw = answers.p_ts_02 ?? 3;
   const contemptRaw = answers.p_ap_02 ?? 3;
 
   // Trigger 1: Very low safety score is an immediate critical signal
-  if (safetyRaw <= 2) {
+  if (safetyAnswered && safetyRaw <= 2) {
     return { triggered: true, severity: 'critical' };
   }
 
   // Trigger 2: Both distress items strongly endorsed + low partner domain
-  if (partnerDomainScore < 25 && safetyRaw <= 2 && contemptRaw >= 4) {
+  if (partnerDomainScore < 25 && safetyAnswered && safetyRaw <= 2 && contemptAnswered && contemptRaw >= 4) {
     return { triggered: true, severity: 'critical' };
   }
 
   // Trigger 3: At least one distress item strongly endorsed + low partner domain
-  if (partnerDomainScore < 25 && (safetyRaw <= 3 || contemptRaw >= 4)) {
+  if (
+    partnerDomainScore < 25 &&
+    ((safetyAnswered && safetyRaw <= 3) || (contemptAnswered && contemptRaw >= 4))
+  ) {
     return { triggered: true, severity: 'warning' };
   }
 

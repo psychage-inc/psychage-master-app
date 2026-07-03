@@ -99,10 +99,15 @@ describe('tool-usage store hardening', () => {
     expect(typeof data.usage.navigator).toBe('number');
   });
 
-  it('does NOT write during read — only recordUse persists', () => {
-    toolUsageStore.getUsage(); // old code seeded storage here
-    expect(storage.get(USAGE_KEY)).toBeNull();
-    toolUsageStore.recordUse('mindmate');
+  it('seeds installedAt ONCE on first read — a stable dormant-nudge baseline', () => {
+    // Second-pass review: a per-call Date.now() fallback (no seed write) kept
+    // resetting the baseline, so the dormant-tool nudge could never fire for a
+    // user who had never opened a tool. First read persists the seed; later
+    // reads return the SAME installedAt.
+    const first = toolUsageStore.getUsage().installedAt;
     expect(storage.get(USAGE_KEY)).not.toBeNull();
+    expect(toolUsageStore.getUsage().installedAt).toBe(first);
+    toolUsageStore.recordUse('mindmate');
+    expect(toolUsageStore.getUsage().installedAt).toBe(first);
   });
 });

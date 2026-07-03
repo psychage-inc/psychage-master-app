@@ -17,9 +17,18 @@ export default function FindScreen() {
 
   return (
     <View className="flex-1">
-      <FindCareScreen />
+      {/* Hidden from assistive tech while the offline overlay covers it — the
+          overlay only hides the wizard VISUALLY; without these props a screen-
+          reader can swipe into covered controls that would fail offline. */}
+      <View
+        className="flex-1"
+        importantForAccessibility={online ? 'auto' : 'no-hide-descendants'}
+        accessibilityElementsHidden={!online}
+      >
+        <FindCareScreen />
+      </View>
       {!online ? (
-        <View className="absolute inset-0 bg-background dark:bg-background-dark">
+        <View className="absolute inset-0 bg-background dark:bg-background-dark" accessibilityViewIsModal>
           <ScreenShell edges={['top', 'bottom']}>
             <OfflineFallback variant="offline" testID="find-offline" />
           </ScreenShell>

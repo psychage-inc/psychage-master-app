@@ -188,7 +188,7 @@ export class MomentStore implements EngagementStore {
       draft.source ?? 'today',
     );
     this.byId.set(moment.id, moment);
-    this.persist();
+    this.persist(moment.id);
     return cloneMoment(moment);
   }
 
@@ -243,15 +243,22 @@ export class MomentStore implements EngagementStore {
     return { version: SCHEMA_VERSION, moments: this.sortedAscending() };
   }
 
-  private persist(): void {
-    this.enforceCap();
+  private persist(protectId?: string): void {
+    this.enforceCap(protectId);
     this.storage.set(STORAGE_KEY, serialize(this.snapshot()));
   }
 
-  /** Growth cap: keep the most recent MAX_STORED_MOMENTS moments, drop the oldest. */
-  private enforceCap(): void {
+  /**
+   * Growth cap: keep the most recent MAX_STORED_MOMENTS moments, drop the oldest.
+   * `protectId` exempts the moment the CURRENT operation just added — under
+   * cross-device clock skew a fresh capture can sort oldest (remote timestamps
+   * are adopted verbatim), and a cap trim must never silently discard the moment
+   * append() is about to report as saved (second-pass review of PR-030).
+   */
+  private enforceCap(protectId?: string): void {
     if (this.byId.size <= MAX_STORED_MOMENTS) return;
-    const excess = this.sortedAscending().slice(0, this.byId.size - MAX_STORED_MOMENTS);
+    const candidates = this.sortedAscending().filter((m) => m.id !== protectId);
+    const excess = candidates.slice(0, this.byId.size - MAX_STORED_MOMENTS);
     for (const m of excess) this.byId.delete(m.id);
   }
 

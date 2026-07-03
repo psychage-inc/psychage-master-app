@@ -1,4 +1,5 @@
 import { router, Stack } from 'expo-router';
+import { useRef } from 'react';
 import { Alert } from 'react-native';
 
 import {
@@ -52,6 +53,10 @@ function localToday(): string {
 
 export default function NavigatorScreen() {
   const reduced = useReducedMotion();
+  // Double-tap guard for the PDF share — a second generateAndShare while the
+  // sheet is opening resolves {ok:false} on Android and would fire a spurious
+  // failure alert (second-pass review of PR-025).
+  const sharingRef = useRef(false);
   const region = resolveRegion({
     storedOverride: loadRegionOverride(storage),
     deviceHint: localeDeviceRegionHint() ?? defaultDeviceRegionHint(),
@@ -84,6 +89,8 @@ export default function NavigatorScreen() {
         helplines={getHelplines(CRISIS_DATASET, region)}
         onFindCare={() => router.push('/find')}
         onDownloadSummary={async (areas: NavigatorSummaryArea[]) => {
+          if (sharingRef.current) return;
+          sharingRef.current = true;
           // Build LOCALLY (offline) + hand to the platform share sheet (SR-4: Psychage
           // never transmits). Summary-only — LABELS, no raw answers, no confidence number.
           const html = buildNavigatorSummaryHtml({
@@ -92,6 +99,7 @@ export default function NavigatorScreen() {
             areas,
           });
           const { ok } = await generateAndShare(html, expoPdfPrinter);
+          sharingRef.current = false;
           if (!ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
         }}
         onHome={() => router.replace('/')}

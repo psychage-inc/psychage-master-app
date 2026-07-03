@@ -27,20 +27,19 @@ export async function shareRecordFile(format: ExportFormat, content: string): Pr
   file.create();
   file.write(content);
 
-  try {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, {
-        mimeType: meta.mimeType,
-        UTI: meta.uti,
-        dialogTitle: 'Export your Psychage record',
-      });
-    }
-  } finally {
-    // The share sheet has consumed the file (or declined it) — do not leave a
-    // plaintext copy of the record in the cache dir, where it would survive
-    // "delete my record" (the MMKV wipe never touches the filesystem; PR-014).
-    deleteExportedRecordFiles();
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(file.uri, {
+      mimeType: meta.mimeType,
+      UTI: meta.uti,
+      dialogTitle: 'Export your Psychage record',
+    });
   }
+  // NOTE: the file is deliberately NOT deleted here. shareAsync resolves when
+  // our activity resumes, but the receiving app (Gmail, Drive, share
+  // extensions) reads the content:// URI AFTER that — deleting in a finally
+  // truncated the handoff (second-pass review of PR-014). The file is replaced
+  // on the next export (delete-then-create above) and removed by both wipe
+  // flows via deleteExportedRecordFiles(), which is what PR-014 required.
 }
 
 /**

@@ -255,10 +255,17 @@ export function migrate(
     let payload: unknown = parsed;
     while (cursor < SCHEMA_VERSION) {
       const step = transforms.find((t) => t.from === cursor);
-      if (!step) {
+      // Progress + throw guards: a registered transform that fails to advance the
+      // version (to <= from) or throws must degrade to an anomaly, never hang or
+      // crash store construction at app launch (second-pass review of PR-043).
+      if (!step || step.to <= cursor) {
         return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'no-migration-path' };
       }
-      payload = step.transform(payload);
+      try {
+        payload = step.transform(payload);
+      } catch {
+        return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'no-migration-path' };
+      }
       cursor = step.to;
     }
     if (!isObj(payload)) {

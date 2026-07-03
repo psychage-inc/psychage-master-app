@@ -34,7 +34,12 @@ export function PrimaryAction({ checkedInToday, dormantTool, onCheckIn }: Primar
       router.push(dormantTool.tool.route as Parameters<typeof router.push>[0]);
     };
     return (
-      <Pressable onPress={openDormant} className="overflow-hidden rounded-xl bg-surface-active p-5 shadow-base dark:bg-surface-active-dark flex-row items-center justify-between active:scale-[0.98]">
+      <Pressable
+        onPress={openDormant}
+        accessibilityRole="button"
+        accessibilityLabel={`Use ${dormantTool.tool.name}`}
+        className="overflow-hidden rounded-xl bg-surface-active p-5 shadow-base dark:bg-surface-active-dark flex-row items-center justify-between active:scale-[0.98]"
+      >
           <View className="flex-1 gap-1">
             <Text variant="caption" className="text-primary dark:text-primary-dark font-sans-medium">It's been a while</Text>
             <Text variant="label" className="text-text-primary dark:text-text-primary-dark">Use {dormantTool.tool.name}</Text>
