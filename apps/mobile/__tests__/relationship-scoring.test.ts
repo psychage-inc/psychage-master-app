@@ -60,8 +60,18 @@ describe('relationship scoring — domain/composite/sub-dimension', () => {
     expect(computeSubDimensionScore(a, 'appreciation')).toBe(0);
   });
 
-  it('missing answers default to neutral (3)', () => {
+  it('a fully unanswered domain falls back to 50 (explicit, not fabricated per-item)', () => {
     expect(computeDomainScore({}, 'family')).toBe(50);
+  });
+
+  it('PR-020: skipped items are EXCLUDED, not scored as neutral 3', () => {
+    // One strong answer + everything else skipped must score that answer alone
+    // (100), not be dragged toward 50 by fabricated neutrals.
+    const family = QUESTIONS.filter((q) => q.domain === 'family');
+    const first = family[0];
+    if (!first) throw new Error('no family questions');
+    const answers = { [first.id]: first.reverseScored ? 1 : 5 };
+    expect(computeDomainScore(answers, 'family')).toBe(100);
   });
 
   it('skipPartner averages only the 3 non-partner domains', () => {
@@ -97,6 +107,16 @@ describe('relationship scoring — tier thresholds', () => {
 });
 
 describe('relationship scoring — Four Horsemen', () => {
+  it('PR-020: skipped conflict items detect nothing (no fabricated mild pattern)', () => {
+    const fh = computeFourHorsemen({});
+    expect(fh.overallRisk).toBe('low');
+    expect(fh.activeCount).toBe(0);
+    expect(fh.criticism.present).toBe(false);
+    expect(fh.contempt.present).toBe(false);
+    expect(fh.stonewalling.present).toBe(false);
+    expect(fh.defensiveness.present).toBe(false);
+  });
+
   it('neutral answers are moderate risk (all scores at the mild threshold)', () => {
     const fh = computeFourHorsemen({ p_cq_01: 3, p_cq_02: 3, p_ap_02: 3 });
     expect(fh.overallRisk).toBe('moderate');

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { ToolScreen } from '@/components/ui/ToolScreen';
 
@@ -54,6 +55,17 @@ export function RelationshipFlow({ store, onExit, onCrisis, initialView = 'landi
 
   const finish = useCallback(
     (finalAnswers: Record<string, number>) => {
+      // PR-020: a run where EVERY question was skipped carries no signal — scoring
+      // it would fabricate a composite/tier/patterns from zero answers (and a
+      // savable, exportable result). Land back on the intro with a calm note.
+      if (Object.keys(finalAnswers).length === 0) {
+        Alert.alert(
+          'Nothing to reflect on yet',
+          'Every question was skipped, so there are no responses to summarize. You can try again whenever it feels right.',
+        );
+        setView('landing');
+        return;
+      }
       setResult(computeResult(finalAnswers, skipPartner));
       setSaved(false);
       setResultsSource('fresh');

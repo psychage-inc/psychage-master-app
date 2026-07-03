@@ -69,8 +69,11 @@ function buildToolSummaries(from: LocalCalendarDate, to: LocalCalendarDate): The
       date: rel.createdAt.slice(0, 10),
       composite: rel.compositeScore,
       tier: rel.tierLabel,
+      // skipPartner runs never assessed the partner domain — its stored score is
+      // a neutral fallback, not data. Handing a clinician "Partner 50/100" for a
+      // user who declared no partner fabricates an assessment (PR-021).
       domains: [
-        { label: 'Partner', value: d.partner, max: 100 },
+        ...(rel.skipPartner ? [] : [{ label: 'Partner', value: d.partner, max: 100 }]),
         { label: 'Family', value: d.family, max: 100 },
         { label: 'Friends', value: d.friends, max: 100 },
         { label: 'Community', value: d.community, max: 100 },
