@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 
 import { localeDeviceRegionHint } from '@/features/crisis/device-region';
 import type { RegionCode } from '@/features/crisis/helpline-schema';
@@ -12,6 +12,7 @@ import {
 import { RegionPickerView } from '@/features/crisis/RegionPickerView';
 import { storage } from '@/lib/adapters/storage';
 import { useReducedMotion } from '@/lib/motion';
+import { goBackOr } from '@/lib/nav';
 
 // S12 route. The C-SEARCH-LIST region picker. Selecting persists the override
 // (local-only) and returns to S11, which re-resolves on focus. Slides on top of S11
@@ -26,7 +27,7 @@ export default function CrisisRegionScreen() {
 
   const handleSelect = (code: RegionCode) => {
     saveRegionOverride(storage, code);
-    router.back();
+    goBackOr('/crisis');
   };
 
   return (
@@ -38,7 +39,7 @@ export default function CrisisRegionScreen() {
         regions={CRISIS_DATASET.regions}
         currentRegion={current}
         onSelect={handleSelect}
-        onBack={() => router.back()}
+        onBack={() => goBackOr('/crisis')}
       />
     </>
   );
