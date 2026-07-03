@@ -101,7 +101,14 @@ export function ResultsView({ result, saved, onSave, onRetake, onViewHistory, on
 
   return (
     <View className="flex-1">
-      <SafetyAlert visible={alertVisible} onDismiss={() => setAlertVisible(false)} onCrisis={onCrisis} />
+      <SafetyAlert
+        visible={alertVisible}
+        onDismiss={() => setAlertVisible(false)}
+        onCrisis={onCrisis}
+        // DV takes precedence when both fire; isolation-only runs get the
+        // connection-focused variant instead of DV hotline copy (PR-029).
+        variant={result.dvAlert.triggered ? 'dv' : 'isolation'}
+      />
 
       <ScrollView
         className="flex-1 px-4"

@@ -104,6 +104,15 @@ export const CT4_RELATIONSHIP = {
     dismiss: 'Continue to my results',
     bannerLead: 'Support is available.',
     bannerBody: 'If you or someone you know is in an unsafe situation, tap Help now for confidential resources.',
+    // Isolation variant (PR-029) — shown when ONLY the social-isolation alert fired.
+    // The DV hotline is the wrong first resource for a lonely, no-partner user;
+    // this variant offers general support lines instead. NEEDS_CLINICAL_REVIEW.
+    isolationTitle: 'Connection can grow again',
+    isolationBody:
+      'Some of your responses suggest you may be feeling disconnected from the people around you. Feeling this way is more common than it seems, and support is available.',
+    lifelineTitle: '988 Suicide & Crisis Lifeline',
+    lifelineSub: 'Call or text 988 — free, 24/7, confidential',
+    lifelineTel: 'tel:988',
   },
 
   history: {
