@@ -133,8 +133,7 @@ describe('supabase auth service — generic errors (checklist #3, no existence l
 
     const result = await svc.signUp('taken@b.co', 'password123');
 
-    expect(result.ok).toBe(false);
-    expect(result.error).toBe('invalid-credentials');
+    expect(result).toEqual({ ok: false, error: 'invalid-credentials' });
   });
 
   it('network failures map to offline', async () => {
@@ -257,6 +256,46 @@ describe('supabase auth service — onAuthChange (runtime state updater)', () =>
 
     stop();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('supabase auth service — signUp with confirm-email ON (PR-076)', () => {
+  it('returns the needs-verification shape — NO live session is fabricated', async () => {
+    const { client, rpc } = makeFakeClient({
+      // Production behavior with confirm-email ON: account created, session is null.
+      signUp: {
+        data: { session: null, user: { email: 'a@b.co', email_confirmed_at: null } },
+        error: null,
+      },
+    });
+    const svc = createSupabaseAuthService({ client, deviceId: 'dev-1' });
+
+    const result = await svc.signUp('a@b.co', 'password123');
+
+    // ok, but session is explicitly null + flagged — callers cannot setSession().
+    expect(result).toEqual({ ok: true, session: null, needsVerification: true });
+    // No session → no auth.uid() → no audit RPC fires either.
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('still returns a live session when supabase does (confirm-email OFF)', async () => {
+    const { client } = makeFakeClient({
+      signUp: {
+        data: {
+          session: {},
+          user: { email: 'a@b.co', email_confirmed_at: '2026-01-01T00:00:00Z' },
+        },
+        error: null,
+      },
+    });
+    const svc = createSupabaseAuthService({ client, deviceId: 'dev-1' });
+
+    const result = await svc.signUp('a@b.co', 'password123');
+
+    expect(result).toEqual({
+      ok: true,
+      session: { email: 'a@b.co', verified: true, name: null },
+    });
   });
 });
 

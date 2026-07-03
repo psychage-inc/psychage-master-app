@@ -19,8 +19,10 @@ export default function SignUpScreen() {
     setFormError(undefined);
     const result = await service.signUp(email, password, fullName);
     setSubmitting(false);
-    if (result.ok && result.session) {
-      setSession(result.session);
+    if (result.ok) {
+      // Only a REAL session reaches the context — with confirm-email ON, Supabase
+      // returns none until the link is tapped (PR-076). /verify carries the resend.
+      if (result.session) setSession(result.session);
       router.push({ pathname: '/verify', params: { email } });
       return;
     }

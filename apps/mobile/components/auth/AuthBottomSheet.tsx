@@ -16,6 +16,12 @@ type AuthBottomSheetProps = {
   initialMode: 'login' | 'signup';
   onClose: () => void;
   onSuccess: () => void;
+  /**
+   * Confirm-email round-trip (PR-074/PR-075): fired with the address when sign-up
+   * created an account without a session, or sign-in hit an unconfirmed account.
+   * The owner routes to /verify (the resend surface) — never a dead end.
+   */
+  onNeedsVerification: (email: string) => void;
   onForgotPassword: () => void;
   onProvider: (provider: SocialProvider) => void;
   socialBusy: boolean;
@@ -26,6 +32,7 @@ export function AuthBottomSheet({
   initialMode,
   onClose,
   onSuccess,
+  onNeedsVerification,
   onForgotPassword,
   onProvider,
   socialBusy,
@@ -51,6 +58,13 @@ export function AuthBottomSheet({
       onSuccess();
       return;
     }
+    // Correct password, unconfirmed account: recoverable via /verify (mirrors
+    // app/(auth)/sign-in.tsx). Every OTHER failure stays on the generic line —
+    // never leak whether an account exists (anti-enumeration).
+    if (result.error === 'email-not-confirmed') {
+      onNeedsVerification(email);
+      return;
+    }
     setFormError(result.error === 'offline' ? AUTH_COPY.offlineLine : AUTH_COPY.credentialsLine);
   };
 
@@ -59,9 +73,16 @@ export function AuthBottomSheet({
     setFormError(undefined);
     const result = await service.signUp(email, password, fullName);
     setSubmitting(false);
-    if (result.ok && result.session) {
-      setSession(result.session);
-      onSuccess();
+    if (result.ok) {
+      if (result.session) {
+        setSession(result.session);
+        onSuccess();
+        return;
+      }
+      // Confirm-email ON: account created, NO session (PR-074/PR-076). Route to
+      // /verify with the email — exactly like app/(auth)/sign-up.tsx — instead of
+      // dropping the user tokenless at '/' with no resend surface.
+      onNeedsVerification(email);
       return;
     }
     setFormError(result.error === 'offline' ? AUTH_COPY.offlineLine : AUTH_COPY.credentialsLine);

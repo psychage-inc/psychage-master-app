@@ -22,6 +22,7 @@ export {
   type AuthResult,
   type AuthService,
   type AuthSession,
+  type SignUpResult,
   type SocialProvider,
   type VerificationStatus,
 } from './auth-service';

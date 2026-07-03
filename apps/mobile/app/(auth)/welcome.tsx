@@ -47,6 +47,12 @@ export default function WelcomeScreen() {
     setAuthSheet(null);
     router.replace('/');
   };
+  // Confirm-email round-trip (PR-074/PR-075): no session yet — land on /verify with
+  // the address (the resend surface), same as the standalone /sign-up route.
+  const handleNeedsVerification = (email: string) => {
+    setAuthSheet(null);
+    router.push({ pathname: '/verify', params: { email } });
+  };
 
   return (
     <View className="flex-1">
@@ -100,6 +106,7 @@ export default function WelcomeScreen() {
           initialMode={authSheet}
           onClose={() => setAuthSheet(null)}
           onSuccess={handleAuthSuccess}
+          onNeedsVerification={handleNeedsVerification}
           onForgotPassword={() => {
             setAuthSheet(null);
             router.push('/forgot-password');

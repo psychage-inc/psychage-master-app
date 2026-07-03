@@ -48,12 +48,27 @@ export interface AuthResult {
   readonly session?: AuthSession;
 }
 
+/**
+ * signUp outcome (PR-076). With confirm-email ON, Supabase creates the account but
+ * returns NO session until the emailed link is tapped. This union makes that state
+ * unrepresentable as "signed in": `session` is null and `needsVerification` is true,
+ * so callers cannot setSession() a phantom — they route to /verify (the resend
+ * surface) instead. A discriminated union (not optional fields) so tsc flags every
+ * caller that does not handle the no-session branch.
+ */
+export type SignUpResult =
+  | { readonly ok: true; readonly session: AuthSession }
+  | { readonly ok: true; readonly session: null; readonly needsVerification: true }
+  | { readonly ok: false; readonly error: AuthErrorCode };
+
 export interface AuthService {
   /**
    * `fullName` (Amendment 2026-06-16) is stored as user metadata (display alias only —
    * §9 "username display is just an alias"). Optional so existing call sites compile.
+   * Returns SignUpResult: with confirm-email ON the account exists but there is NO
+   * session — callers must route to /verify, never fabricate a signed-in state.
    */
-  signUp(email: string, password: string, fullName?: string): Promise<AuthResult>;
+  signUp(email: string, password: string, fullName?: string): Promise<SignUpResult>;
   signIn(email: string, password: string): Promise<AuthResult>;
   /**
    * Continue with a third-party provider (Apple / Google). Drives the OS sheet, then
