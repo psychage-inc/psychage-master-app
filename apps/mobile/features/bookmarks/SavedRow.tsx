@@ -22,9 +22,15 @@ import type { Bookmark as BookmarkItem, ResourceType } from './types';
 const TOOL_NAMES: Record<string, string> = {
   clarity: 'Clarity Score',
   sleep: 'Sleep Architect',
-  'mood-journal': 'Mood Journal',
+  'mood-journal': 'Moments',
   mindmate: 'MindMate',
   'relationship-health': 'Relationship Health Check',
+};
+
+// Legacy tool slugs whose /tools/<slug> route no longer exists (Mood Journal was
+// folded into Moments, PR #173) — a stored bookmark must not route to +not-found.
+const TOOL_ROUTE_OVERRIDES: Record<string, string> = {
+  'mood-journal': '/',
 };
 
 const TYPE_LABEL: Record<ResourceType, string> = {
@@ -41,7 +47,7 @@ function routeFor(b: BookmarkItem): string {
     case 'provider':
       return `/find/provider/${b.resource_id}`;
     case 'tool':
-      return `/tools/${b.resource_id}`;
+      return TOOL_ROUTE_OVERRIDES[b.resource_id] ?? `/tools/${b.resource_id}`;
     default:
       return '/';
   }

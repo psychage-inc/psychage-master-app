@@ -11,7 +11,7 @@ export type ToolIconKey = 'anchor' | 'moon' | 'heart' | 'notebook' | 'compass';
 // Route is a literal union (mirrors COMPASS_ROUTES) so router.push() type-checks
 // under Expo Router typed routes.
 export type RelatedTool = {
-  readonly route: '/navigator' | '/toolkit' | '/tools/sleep' | '/tools/relationship-health' | '/tools/mood-journal';
+  readonly route: '/navigator' | '/toolkit' | '/tools/sleep' | '/tools/relationship-health' | '/';
   readonly label: string;
   readonly sub: string;
   readonly iconKey: ToolIconKey;
@@ -53,15 +53,16 @@ const BY_CATEGORY = {
     iconKey: 'heart',
   },
   'depression-mood': {
-    route: '/tools/mood-journal',
+    // Mood Journal was folded into Moments (PR #173); '/tools/mood-journal' 404'd (PR-023).
+    route: '/',
     label: 'Notice what comes up',
-    sub: 'Mood Journal',
+    sub: 'Moments',
     iconKey: 'notebook',
   },
   'emotional-regulation': {
-    route: '/tools/mood-journal',
+    route: '/',
     label: 'Notice what comes up',
-    sub: 'Mood Journal',
+    sub: 'Moments',
     iconKey: 'notebook',
   },
 } as const satisfies Readonly<Record<string, RelatedTool>>;
