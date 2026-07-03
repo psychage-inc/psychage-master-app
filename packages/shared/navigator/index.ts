@@ -45,6 +45,7 @@ export {
   getRelevanceLevel,
   getSeverityModifier,
   normalizeSymptoms,
+  normalizeSymptomsForSafety,
 } from './utils';
 
 // Constants (Sacred Rule #1)

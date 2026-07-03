@@ -14,6 +14,7 @@ import {
   compareByTimestamp,
   type AnomalyReason,
   migrate,
+  normalizeMoments,
   QUARANTINE_KEY_PREFIX,
   type PersistedMoments,
   SCHEMA_VERSION,
@@ -26,6 +27,7 @@ import {
   type EngagementStore,
   type LocalCalendarDate,
   MAX_LABELS,
+  MAX_STORED_MOMENTS,
   type Moment,
   type MomentDraft,
   type MomentSource,
@@ -194,9 +196,15 @@ export class MomentStore implements EngagementStore {
    * Merge remote moments into the local cache (last-write-wins) and persist. This is
    * the pull/restore half of sync: on a fresh install the local cache is empty and
    * this repopulates it from the user's account (history survives reinstall).
+   *
+   * Remote rows are validated at this boundary (via the loader's `normalizeMoments`):
+   * invalid rows are DROPPED, valid ones kept, and the call never throws — one
+   * malformed server row must not poison the blob and quarantine the whole store on
+   * the next launch.
    */
   ingestRemote(remote: readonly Moment[]): void {
-    const merged = mergeMoments([...this.byId.values()], remote);
+    const { moments: validRemote } = normalizeMoments(remote);
+    const merged = mergeMoments([...this.byId.values()], validRemote);
     const before = this.byId.size;
     this.byId.clear();
     for (const m of merged) this.byId.set(m.id, m);
@@ -236,7 +244,15 @@ export class MomentStore implements EngagementStore {
   }
 
   private persist(): void {
+    this.enforceCap();
     this.storage.set(STORAGE_KEY, serialize(this.snapshot()));
+  }
+
+  /** Growth cap: keep the most recent MAX_STORED_MOMENTS moments, drop the oldest. */
+  private enforceCap(): void {
+    if (this.byId.size <= MAX_STORED_MOMENTS) return;
+    const excess = this.sortedAscending().slice(0, this.byId.size - MAX_STORED_MOMENTS);
+    for (const m of excess) this.byId.delete(m.id);
   }
 
   private hydrate(value: PersistedMoments): void {

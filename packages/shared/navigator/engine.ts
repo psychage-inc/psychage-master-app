@@ -30,6 +30,7 @@ import {
   getRelevanceLabel,
   NAVIGATOR_DISCLAIMER,
   normalizeSymptoms,
+  normalizeSymptomsForSafety,
 } from './utils';
 import { CONFIDENCE_CAP } from './constants';
 
@@ -59,12 +60,15 @@ export function runSymptomNavigator(
     confidence_cap: Math.min(rawConfig.confidence_cap, CONFIDENCE_CAP),
   };
 
-  // Step 1: Normalize symptoms
+  // Step 1: Normalize symptoms (active-only — the scoring surface)
   const normalized = normalizeSymptoms(userInputs, knowledgeBase.symptoms);
 
-  // Step 2: Red flag screening — SAFETY FIRST
+  // Step 2: Red flag screening — SAFETY FIRST. Screens ALL submitted symptoms
+  // found in the KB, including is_active=false ones: the crisis halt must not
+  // depend on is_active (Sacred Rule #3 — a CRISIS symptom flipped inactive in
+  // the KB still halts). Superset of `normalized`, so halting only gets stricter.
   const safetyResult = screenRedFlags(
-    normalized,
+    normalizeSymptomsForSafety(userInputs, knowledgeBase.symptoms),
     knowledgeBase.symptoms,
     knowledgeBase.crisisResources,
     userRegion

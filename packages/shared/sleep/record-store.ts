@@ -231,6 +231,17 @@ export class SleepRecordStore {
     if (s.exercise_time !== undefined && !HHMM_RE.test(s.exercise_time)) {
       throw new SleepValidationError('substances.exercise_time must be HH:MM');
     }
+    // Same bounds the loader enforces (migrate.ts isValidSubstances) — a value that
+    // passes the write must survive the next launch's load, never quarantine it.
+    const nonNegNumber = (label: string, value: number | undefined) => {
+      if (value !== undefined && !(typeof value === 'number' && Number.isFinite(value) && value >= 0)) {
+        throw new SleepValidationError(
+          `${label} must be a non-negative finite number, got ${String(value)}`,
+        );
+      }
+    };
+    nonNegNumber('substances.alcohol_units', s.alcohol_units);
+    nonNegNumber('substances.screens_before_bed_minutes', s.screens_before_bed_minutes);
   }
 
   private assertValidText(label: string, value: string | undefined): void {

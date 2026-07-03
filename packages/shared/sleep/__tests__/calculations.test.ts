@@ -47,6 +47,11 @@ describe('time helpers', () => {
     expect(minutesBetween('23:00', '07:15')).toBe(495); // crosses midnight
   });
 
+  it('minutesBetween of equal times is a zero-length interval, not a full 24h wrap', () => {
+    expect(minutesBetween('22:00', '22:00')).toBe(0);
+    expect(minutesBetween('00:00', '00:00')).toBe(0);
+  });
+
   it('formatDuration', () => {
     expect(formatDuration(495)).toBe('8h 15m');
     expect(formatDuration(60)).toBe('1h');
@@ -70,6 +75,18 @@ describe('calculateMetrics', () => {
     );
     expect(wild.total_sleep_minutes).toBe(0);
     expect(wild.sleep_efficiency).toBeGreaterThanOrEqual(0);
+  });
+
+  it('a zero-length night (bedtime == out_of_bed_time) yields zeroed metrics, not a phantom 24h night', () => {
+    // Equal times used to wrap to 1440 minutes in bed — a fabricated full-day night
+    // that inflated TIB/TST. The degenerate-input guard (efficiency's TIB > 0 check)
+    // now sees 0 and the whole metric set stays at the zero floor callers tolerate.
+    const m = calculateMetrics(
+      entry('2026-06-16', { bedtime: '22:00', out_of_bed_time: '22:00', sleep_onset_minutes: 0, night_waking_duration_minutes: 0 }),
+    );
+    expect(m.time_in_bed_minutes).toBe(0);
+    expect(m.total_sleep_minutes).toBe(0);
+    expect(m.sleep_efficiency).toBe(0);
   });
 });
 

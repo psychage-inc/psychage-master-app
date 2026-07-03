@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { screenRedFlags } from '@/lib/navigator/safety';
-import { normalizeSymptoms } from '@/lib/navigator/utils';
+import { normalizeSymptoms, normalizeSymptomsForSafety } from '@/lib/navigator/utils';
 import { runSymptomNavigator } from '@/lib/navigator/engine';
 import type {
   CrisisResourcesByRegion,
@@ -263,6 +263,60 @@ describe('Safety Screening — Red Flag Detection', () => {
       expect(results.safety.should_halt).toBe(false);
       expect(results.safety.has_urgent).toBe(true);
       expect(results.results.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ─── Sacred Rule #3: the halt must not depend on is_active ────────────────
+
+  describe('Crisis halt is independent of is_active', () => {
+    function kbWithInactive(ids: string[]): KnowledgeBase {
+      const base = createTestKnowledgeBase();
+      return {
+        ...base,
+        symptoms: base.symptoms.map((s) =>
+          ids.includes(s.id) ? { ...s, is_active: false } : s,
+        ),
+      };
+    }
+
+    it('a CRISIS symptom flipped inactive in the KB STILL halts the engine', () => {
+      const kbInactiveCrisis = kbWithInactive(['COG_009']);
+      const results = runSymptomNavigator(
+        [{ symptom_id: 'COG_009', severity: 5 }],
+        kbInactiveCrisis,
+        'US',
+      );
+
+      expect(results.safety.has_crisis).toBe(true);
+      expect(results.safety.should_halt).toBe(true);
+      expect(results.safety.highest_level).toBe('CRISIS');
+      expect(results.results).toHaveLength(0);
+      expect(results.safety.crisis_resources.length).toBeGreaterThan(0);
+    });
+
+    it('every known CRISIS symptom still halts when inactive, at any severity', () => {
+      const kbAllInactive = kbWithInactive(CRISIS_SYMPTOM_IDS);
+      for (const id of CRISIS_SYMPTOM_IDS) {
+        const results = runSymptomNavigator([{ symptom_id: id, severity: 1 }], kbAllInactive);
+        expect(results.safety.should_halt).toBe(true);
+      }
+    });
+
+    it('normalizeSymptomsForSafety keeps inactive symptoms; normalizeSymptoms (scoring) still drops them', () => {
+      const kbInactiveCrisis = kbWithInactive(['COG_009']);
+      const inputs: UserSymptomInput[] = [{ symptom_id: 'COG_009', severity: 5 }];
+      expect(normalizeSymptoms(inputs, kbInactiveCrisis.symptoms)).toHaveLength(0);
+      const forSafety = normalizeSymptomsForSafety(inputs, kbInactiveCrisis.symptoms);
+      expect(forSafety).toHaveLength(1);
+
+      const result = screenRedFlags(forSafety, kbInactiveCrisis.symptoms, crisisResources);
+      expect(result.should_halt).toBe(true);
+    });
+
+    it('unknown symptom ids are still dropped by both normalizers (no KB definition to screen)', () => {
+      const inputs: UserSymptomInput[] = [{ symptom_id: 'NOPE_999', severity: 5 }];
+      expect(normalizeSymptoms(inputs, symptoms)).toHaveLength(0);
+      expect(normalizeSymptomsForSafety(inputs, symptoms)).toHaveLength(0);
     });
   });
 

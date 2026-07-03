@@ -25,6 +25,17 @@
     },
     "baseUrl": "."
   },
-  "include": ["navigator", "peaf", "sensitivity", "check-in", "data", "mascot", "safety"],
+  "include": [
+    "navigator",
+    "peaf",
+    "sensitivity",
+    "check-in",
+    "data",
+    "mascot",
+    "safety",
+    "engagement",
+    "sleep",
+    "clarity-journal"
+  ],
   "exclude": ["node_modules", "dist", "coverage", "**/__tests__/**", "**/*.test.ts"]
 }

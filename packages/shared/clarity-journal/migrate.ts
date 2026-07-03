@@ -61,7 +61,18 @@ export type MigrateOutcome =
       readonly reason: AnomalyReason;
     };
 
-const TRANSFORMS: readonly { from: number; to: number; transform: (raw: unknown) => unknown }[] = [];
+// Forward-only transform registry, indexed by `from` (same pattern as
+// engagement/migrate.ts and sleep/migrate.ts). Each step receives the FULL parsed
+// envelope of version `from` and returns the envelope shaped for version `to`;
+// `migrate` walks the registry stepwise and only then validates the collections
+// against the current-version validators. Empty: v1 is the first journal schema.
+interface Transform {
+  readonly from: number;
+  readonly to: number;
+  readonly transform: (raw: unknown) => unknown;
+}
+export type JournalTransform = Transform;
+const TRANSFORMS: readonly Transform[] = [];
 
 export function emptyStore(): PersistedJournal {
   return {
@@ -209,7 +220,15 @@ function normalizeList<T>(
   return { items: out, dropped };
 }
 
-export function migrate(rawJson: string | null): MigrateOutcome {
+/**
+ * Parse + migrate a persisted journal blob. `transforms` is injectable for the
+ * migrator's own tests (DI seam, rules/conventions.md #3); production callers
+ * always use the module TRANSFORMS registry via the default.
+ */
+export function migrate(
+  rawJson: string | null,
+  transforms: readonly Transform[] = TRANSFORMS,
+): MigrateOutcome {
   if (rawJson === null) return { status: 'clean', value: emptyStore() };
 
   let parsed: unknown;
@@ -227,28 +246,45 @@ export function migrate(rawJson: string | null): MigrateOutcome {
   if (parsed.version > SCHEMA_VERSION) {
     return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'future-version' };
   }
-  if (parsed.version < SCHEMA_VERSION && !TRANSFORMS.find((t) => t.from === parsed.version)) {
-    return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'no-migration-path' };
+  let envelope: Record<string, unknown> = parsed;
+  if (parsed.version < SCHEMA_VERSION) {
+    // Apply the stepwise N→N+1 transforms BEFORE validating (same loop as
+    // engagement/migrate.ts and sleep/migrate.ts). Validating an old-version
+    // payload against the current validators would mass-quarantine every journal.
+    let cursor = parsed.version;
+    let payload: unknown = parsed;
+    while (cursor < SCHEMA_VERSION) {
+      const step = transforms.find((t) => t.from === cursor);
+      if (!step) {
+        return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'no-migration-path' };
+      }
+      payload = step.transform(payload);
+      cursor = step.to;
+    }
+    if (!isObj(payload)) {
+      return { status: 'anomaly', value: emptyStore(), raw: rawJson, reason: 'not-an-object' };
+    }
+    envelope = payload;
   }
 
-  const dc = normalizeList<DailyJournalCheckIn>(parsed.dailyCheckIns, validDailyCheckIn, (e) => e.date);
-  const ws = normalizeList<WeeklyScreening>(parsed.weeklyScreenings, validScreening, (e) => e.weekStart);
-  const wr = normalizeList<WeeklyReflection>(parsed.weeklyReflections, validReflection, (e) => e.weekStart);
-  const tr = normalizeList<ThoughtRecord>(parsed.thoughtRecords, validThoughtRecord);
-  const ba = normalizeList<BehavioralActivation>(parsed.behavioralActivations, validActivation);
-  const tg = normalizeList<TriggerLog>(parsed.triggerLogs, validTrigger);
-  const sf = normalizeList<SafetyFlag>(parsed.safetyFlags, validSafetyFlag);
+  const dc = normalizeList<DailyJournalCheckIn>(envelope.dailyCheckIns, validDailyCheckIn, (e) => e.date);
+  const ws = normalizeList<WeeklyScreening>(envelope.weeklyScreenings, validScreening, (e) => e.weekStart);
+  const wr = normalizeList<WeeklyReflection>(envelope.weeklyReflections, validReflection, (e) => e.weekStart);
+  const tr = normalizeList<ThoughtRecord>(envelope.thoughtRecords, validThoughtRecord);
+  const ba = normalizeList<BehavioralActivation>(envelope.behavioralActivations, validActivation);
+  const tg = normalizeList<TriggerLog>(envelope.triggerLogs, validTrigger);
+  const sf = normalizeList<SafetyFlag>(envelope.safetyFlags, validSafetyFlag);
 
   let toolbox: WellnessToolbox | null = null;
   let toolboxDropped = false;
-  if (parsed.wellnessToolbox != null) {
-    if (validToolbox(parsed.wellnessToolbox)) toolbox = parsed.wellnessToolbox;
+  if (envelope.wellnessToolbox != null) {
+    if (validToolbox(envelope.wellnessToolbox)) toolbox = envelope.wellnessToolbox;
     else toolboxDropped = true;
   }
   let plan: SafetyPlan | null = null;
   let planDropped = false;
-  if (parsed.safetyPlan != null) {
-    if (validSafetyPlan(parsed.safetyPlan)) plan = parsed.safetyPlan;
+  if (envelope.safetyPlan != null) {
+    if (validSafetyPlan(envelope.safetyPlan)) plan = envelope.safetyPlan;
     else planDropped = true;
   }
 

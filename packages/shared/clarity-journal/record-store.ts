@@ -86,8 +86,19 @@ export class ClarityJournalStore {
   saveDailyCheckIn(input: DailyInput): DailyJournalCheckIn {
     this.assertMood(input.mood, 'mood');
     this.assertMood(input.energy, 'energy');
-    if (input.sleepHours !== undefined && (input.sleepHours < 0 || input.sleepHours > 24)) {
-      throw new ClarityJournalValidationError('sleepHours must be 0..24');
+    // Same bounds the loader enforces (migrate.ts validDailyCheckIn): a finite number
+    // in 0..24. NaN slipped the old `< 0 || > 24` check at write, then dropped the
+    // whole check-in on the next launch's load — write/read asymmetry.
+    if (
+      input.sleepHours !== undefined &&
+      !(
+        typeof input.sleepHours === 'number' &&
+        Number.isFinite(input.sleepHours) &&
+        input.sleepHours >= 0 &&
+        input.sleepHours <= 24
+      )
+    ) {
+      throw new ClarityJournalValidationError('sleepHours must be a finite number 0..24');
     }
     if (input.note !== undefined) this.assertLen(input.note, NOTE_MAX_LENGTH, 'note');
     const date = toLocalCalendarDate(this.now());
@@ -117,6 +128,13 @@ export class ClarityJournalStore {
 
   // ── weekly screening (one per weekStart) ───────────────────────────────────
   saveScreening(input: ScreeningInput, when = this.now()): WeeklyScreening {
+    // Same bounds the loader enforces (migrate.ts validScreening / isPair): each
+    // instrument is a 2-item integer pair within its scale. Validating at write
+    // keeps a bad pair from quarantining the whole journal on the next launch.
+    this.assertPair(input.phq2, 0, 3, 'phq2');
+    this.assertPair(input.gad2, 0, 3, 'gad2');
+    this.assertPair(input.pss4, 0, 4, 'pss4');
+    this.assertPair(input.who5, 0, 5, 'who5');
     const ws = weekStart(toLocalCalendarDate(when));
     const existing = this.data.weeklyScreenings.find((e) => e.weekStart === ws);
     const entry: WeeklyScreening = {
@@ -308,6 +326,14 @@ export class ClarityJournalStore {
     if (!Number.isInteger(v) || v < lo || v > hi) {
       throw new ClarityJournalValidationError(`${field} must be an integer ${lo}..${hi}, got ${String(v)}`);
     }
+  }
+
+  private assertPair(v: readonly [number, number], lo: number, hi: number, field: string): void {
+    if (!Array.isArray(v) || v.length !== 2) {
+      throw new ClarityJournalValidationError(`${field} must be a 2-item pair`);
+    }
+    this.assertRange(v[0], lo, hi, `${field}[0]`);
+    this.assertRange(v[1], lo, hi, `${field}[1]`);
   }
 
   private assertLen(v: string, max: number, field: string): void {

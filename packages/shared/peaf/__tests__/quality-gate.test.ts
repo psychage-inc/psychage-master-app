@@ -168,6 +168,77 @@ describe('runQualityGate', () => {
       expect(sectionCheck?.status).toBe('fail');
       expect(sectionCheck?.blocking).toBe(true);
     });
+
+    it('does NOT pass on section names appearing only in body prose (blocking check)', () => {
+      // Every required section name woven into mid-sentence prose — zero headings.
+      // The old unanchored `\b<title>\b` alternative passed this content.
+      const prose =
+        'The overview of care shows that signs & symptoms vary, and causes & risk factors ' +
+        'interact; a diagnosis conversation covers treatment options, and living with a ' +
+        'condition means knowing when to seek help and reading the references your provider shares. ';
+      const result = runQualityGate(makeInput({ content: prose.repeat(120) }));
+      const sectionCheck = result.checks.find((c) => c.id === 'required_sections');
+      expect(sectionCheck?.status).toBe('fail');
+      expect(sectionCheck?.blocking).toBe(true);
+      expect(result.passed).toBe(false);
+    });
+
+    it('accepts markdown (#), bold-line (**), and bare-line headings', () => {
+      const sections = [
+        '## Overview\nContent here.',
+        '**Signs & Symptoms**\nContent here.',
+        'Causes & Risk Factors\nContent here.', // title alone on its own line
+        '### Diagnosis\nContent here.',
+        '## Treatment Options\nContent here.',
+        '**Living With**\nContent here.',
+        'When to Seek Help\nContent here.',
+        '## References\nContent here.',
+      ];
+      const padding = Array(300).fill('This is a simple sentence about mental health.').join(' ');
+      const result = runQualityGate(
+        makeInput({ content: sections.join('\n\n') + '\n\n' + padding }),
+      );
+      const sectionCheck = result.checks.find((c) => c.id === 'required_sections');
+      expect(sectionCheck?.status).toBe('pass');
+    });
+  });
+
+  describe('readability blocking contract', () => {
+    it('a grade above HARD_FAIL_FK_GRADE is a BLOCKING failure', () => {
+      // research_digest article that passes every other check, but written as one
+      // enormous polysyllabic sentence — FK grade far beyond the hard-fail ceiling.
+      const sections = [
+        '## Key Finding\nContent.',
+        '## Study Details\nContent.',
+        '## What This Means\nContent.',
+        '## Limitations\nContent.',
+        "## What's Next\nContent.",
+        '## References\nContent.',
+      ];
+      const unreadable =
+        Array(300).fill('phenomenological epistemological incomprehensibility').join(' ') + '.';
+      const result = runQualityGate({
+        content: sections.join('\n\n') + '\n\n' + unreadable,
+        articleType: 'research_digest',
+        citations: Array.from({ length: 5 }, (_, i) => makeCitation({}, i)),
+        authorName: 'Dr. Smith',
+        linkedConditionIds: ['MDE'],
+        hasDisclaimer: false,
+      });
+
+      const readabilityCheck = result.checks.find((c) => c.id === 'readability');
+      expect(readabilityCheck?.status).toBe('fail');
+      expect(readabilityCheck?.blocking).toBe(true); // advertised as blocking — must block
+      expect(result.blockingFailures).toBe(1); // readability is the only failure here
+      expect(result.passed).toBe(false);
+    });
+
+    it('a grade at or below the hard-fail ceiling stays non-blocking', () => {
+      const result = runQualityGate(makeInput()); // simple sentences — pass band
+      const readabilityCheck = result.checks.find((c) => c.id === 'readability');
+      expect(readabilityCheck?.status).toBe('pass');
+      expect(readabilityCheck?.blocking).toBe(false);
+    });
   });
 
   describe('author check', () => {

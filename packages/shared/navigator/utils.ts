@@ -87,13 +87,10 @@ function sanitizeInput(input: UserSymptomInput): UserSymptomInput {
 
 // ─── Symptom Normalization ───────────────────────────────────────────────────
 
-/**
- * Normalize user inputs against the symptom knowledge base.
- * Sanitizes out-of-range values, resolves synonyms, and fills in defaults.
- */
-export function normalizeSymptoms(
+function normalizeAgainstKb(
   inputs: UserSymptomInput[],
-  symptoms: Symptom[]
+  symptoms: Symptom[],
+  requireActive: boolean
 ): NormalizedSymptom[] {
   const symptomMap = new Map<string, Symptom>();
   for (const s of symptoms) {
@@ -104,7 +101,7 @@ export function normalizeSymptoms(
     .map((rawInput) => {
       const input = sanitizeInput(rawInput);
       const symptom = symptomMap.get(input.symptom_id);
-      if (!symptom || !symptom.is_active) return null;
+      if (!symptom || (requireActive && !symptom.is_active)) return null;
 
       return {
         symptom_id: input.symptom_id,
@@ -115,6 +112,33 @@ export function normalizeSymptoms(
       } satisfies NormalizedSymptom;
     })
     .filter((s): s is NormalizedSymptom => s !== null);
+}
+
+/**
+ * Normalize user inputs against the symptom knowledge base.
+ * Sanitizes out-of-range values, resolves synonyms, and fills in defaults.
+ * Drops unknown ids and `is_active: false` symptoms (the scoring surface).
+ */
+export function normalizeSymptoms(
+  inputs: UserSymptomInput[],
+  symptoms: Symptom[]
+): NormalizedSymptom[] {
+  return normalizeAgainstKb(inputs, symptoms, true);
+}
+
+/**
+ * SAFETY-SCREENING normalization: resolves every submitted symptom found in the
+ * knowledge base INCLUDING `is_active: false` ones. The crisis halt (Sacred Rule
+ * #3) must not depend on `is_active` — a CRISIS-tagged symptom flipped inactive in
+ * the KB must still halt the flow. Use this list for `screenRedFlags` only; keep
+ * `normalizeSymptoms` (active-only) for scoring. This can only make halting
+ * STRICTER: it is a superset of the active-only list.
+ */
+export function normalizeSymptomsForSafety(
+  inputs: UserSymptomInput[],
+  symptoms: Symptom[]
+): NormalizedSymptom[] {
+  return normalizeAgainstKb(inputs, symptoms, false);
 }
 
 // ─── Modifier Calculations ───────────────────────────────────────────────────

@@ -144,13 +144,20 @@ function checkCitationRecency(citations: EnhancedCitation[]): QualityCheck {
 }
 
 function checkRequiredSections(content: string, template: ArticleTemplate): QualityCheck {
-  // Look for h2-level headings in plain text (## or bold lines or uppercase)
+  // Look for HEADING-LIKE occurrences only. This is a BLOCKING check, so it must
+  // never pass on the section name appearing in body prose. Accepted forms, each
+  // anchored to the start of a line:
+  //   - markdown heading:  "## Treatment Options"
+  //   - bold-line heading: "**Treatment Options**"
+  //   - bare-line heading: the section title alone on its own line
   const headingPatterns = template.requiredSections.map((section) => {
-    // Create a flexible regex that matches the section name in headings
     const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return {
       section,
-      pattern: new RegExp(`(^|\\n)#{1,3}\\s*${escaped}|\\b${escaped}\\b`, 'i'),
+      pattern: new RegExp(
+        `(^|\\n)\\s*(?:#{1,3}\\s*|\\*\\*\\s*)${escaped}|(^|\\n)\\s*${escaped}\\s*(?:\\n|$)`,
+        'i',
+      ),
     };
   });
 
@@ -194,7 +201,10 @@ function checkReadability(content: string): QualityCheck {
       status === 'pass'
         ? `Grade level ${grade} (target: ≤ ${QUALITY_GATE.MAX_FK_GRADE})`
         : `Grade level ${grade} — target is ≤ ${QUALITY_GATE.MAX_FK_GRADE} (6th–8th grade)`,
-    blocking: false,
+    // Blocking exactly when the grade exceeds the hard-fail ceiling — the advertised
+    // contract (content-standards-data.ts: Readability is a blocking check). Between
+    // MAX_FK_GRADE and HARD_FAIL_FK_GRADE it stays a non-blocking warning.
+    blocking: grade > QUALITY_GATE.HARD_FAIL_FK_GRADE,
     value: grade,
     target: QUALITY_GATE.MAX_FK_GRADE,
   };
@@ -342,7 +352,8 @@ function checkBlockedSources(citations: EnhancedCitation[]): QualityCheck {
  *   - source_tier, citation_count, required_sections: 15 each
  *   - readability, word_count: 10 each
  *   - citation_recency, sensitivity, blocked_sources: 8 each
- *   - disclaimer, author, linked_conditions: 5 each
+ *   - disclaimer, author: 5 each
+ *   - linked_conditions: 1
  */
 const CHECK_WEIGHTS: Record<string, number> = {
   source_tier: 15,
