@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/components/GlobalHeader', () => ({ GlobalHeader: () => null }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
@@ -59,5 +59,31 @@ describe('CompareView', () => {
     expect(await screen.findByText('Maya Feldman')).toBeTruthy();
     expect(await screen.findByText('Daniel O')).toBeTruthy();
     await waitFor(() => expect(screen.getAllByText('Clinical Social Worker').length).toBe(2));
+  });
+
+  // PR-009 — one transient per-id failure must not discard the columns that loaded.
+  it('keeps loaded columns and shows a notice when one provider fetch fails', async () => {
+    idsMock.mockReturnValue({ data: new Set(['a', 'b']) });
+    getByIdMock.mockImplementation((id: string) =>
+      id === 'b' ? Promise.reject(new Error('transient')) : Promise.resolve(mk(id)),
+    );
+    renderWithProviders(<CompareView />, { query: true, haptics: true });
+    expect(await screen.findByText('Maya Feldman')).toBeTruthy();
+    expect(screen.getByTestId('compare-partial-notice')).toBeTruthy();
+    expect(screen.queryByText('Daniel O')).toBeNull();
+  });
+
+  // PR-009 — when nothing loads, surface a retryable error, never an eternal loader.
+  it('shows a retryable error when nothing loads, then recovers on retry', async () => {
+    idsMock.mockReturnValue({ data: new Set(['a', 'b']) });
+    getByIdMock.mockRejectedValue(new Error('down'));
+    renderWithProviders(<CompareView />, { query: true, haptics: true });
+    expect(await screen.findByText("Couldn't load these providers")).toBeTruthy();
+    expect(screen.queryByTestId('compare-loading')).toBeNull();
+
+    getByIdMock.mockImplementation((id: string) => Promise.resolve(mk(id)));
+    fireEvent.press(screen.getByTestId('compare-retry'));
+    expect(await screen.findByText('Maya Feldman')).toBeTruthy();
+    expect(await screen.findByText('Daniel O')).toBeTruthy();
   });
 });

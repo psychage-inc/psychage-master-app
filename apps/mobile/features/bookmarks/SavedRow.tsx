@@ -1,8 +1,9 @@
 /**
  * S-3 saved-list row (T-006). Resolves the saved resource by id (refetch — no
  * denormalized snapshot), routes to its detail surface on tap, and exposes a
- * trailing unsave. Unresolvable resource → "No longer available" + Remove (EC-4),
- * never a crash.
+ * trailing unsave. A resource that RESOLVES to null → "No longer available" +
+ * Remove (EC-4); a fetch that FAILS (transient) → "Couldn't load right now" with
+ * tap-to-retry, Remove still available. Never a crash.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -75,11 +76,18 @@ function useResolvedTitle(b: BookmarkItem) {
 export function SavedRow({ item }: { item: BookmarkItem }) {
   const tc = useThemeColors();
   const toggle = useToggleBookmark();
-  const { data: title, isLoading } = useResolvedTitle(item);
-  const unavailable = !isLoading && (title === null || title === undefined);
+  const { data: title, isLoading, isError, refetch } = useResolvedTitle(item);
+  // Only a RESOLVED null means the resource is genuinely gone (EC-4). A failed
+  // fetch is transient — it must NOT be labelled "No longer available".
+  const unavailable = !isLoading && !isError && (title === null || title === undefined);
   const Icon = iconFor(item.resource_type);
 
   const open = () => {
+    if (isError) {
+      // Transient load failure — the row itself is the retry affordance.
+      void refetch();
+      return;
+    }
     if (unavailable) return;
     trackSavedItemOpened();
     router.push(routeFor(item));
@@ -87,7 +95,7 @@ export function SavedRow({ item }: { item: BookmarkItem }) {
   const remove = () =>
     toggle.mutate({ ref: { resource_type: item.resource_type, resource_id: item.resource_id }, wasSaved: true });
 
-  const display = isLoading ? '…' : (title ?? BOOKMARKS_COPY.row.unavailable);
+  const display = isLoading ? '…' : isError ? "Couldn't load right now" : (title ?? BOOKMARKS_COPY.row.unavailable);
 
   return (
     <Pressable
@@ -104,7 +112,7 @@ export function SavedRow({ item }: { item: BookmarkItem }) {
           {display}
         </Text>
         <Text variant="caption" className="text-text-secondary dark:text-text-secondary-dark">
-          {unavailable ? BOOKMARKS_COPY.row.unavailable : TYPE_LABEL[item.resource_type]}
+          {unavailable ? BOOKMARKS_COPY.row.unavailable : isError ? 'Tap to retry' : TYPE_LABEL[item.resource_type]}
         </Text>
       </View>
       <Pressable
