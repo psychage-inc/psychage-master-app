@@ -82,7 +82,10 @@ export async function persistExchange(
     if (!deps.enabled()) return conversationId;
     if (!deps.getConsent()) return conversationId;
     // Defense-in-depth: crisis content never persists (the hook also skips it).
-    if (ex.safetyLevel === 'CRISIS') return conversationId;
+    // FAIL-CLOSED (PR-073): an absent verdict means the stream dropped before the
+    // `done` event — the exchange may be a crisis turn whose meta never arrived.
+    // Unknown ⇒ treated exactly like CRISIS: no cloud write.
+    if (ex.safetyLevel === undefined || ex.safetyLevel === 'CRISIS') return conversationId;
     // A conversation row needs a non-empty session id (NOT NULL on the table).
     if (!ex.sessionId && !ex.conversationId) return null;
 

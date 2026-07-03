@@ -153,6 +153,21 @@ describe('persistExchange — best-effort consent-gated backup', () => {
     expect(id).toBe('conv-existing');
   });
 
+  it('FAIL-CLOSED: never persists when the safety verdict is absent (stream dropped before done — PR-073)', async () => {
+    const capture: Capture = { tables: [] };
+    const getUserId = vi.fn(async () => 'user-1');
+    const id = await persistExchange(
+      { ...BASE, safetyLevel: undefined, conversationId: 'conv-existing' },
+      deps({ getUserId }, capture),
+    );
+
+    // An exchange without a verdict may be a crisis turn whose meta never arrived.
+    // Treated exactly like CRISIS: guarded before auth, nothing written.
+    expect(getUserId).not.toHaveBeenCalled();
+    expect(capture.tables).toEqual([]);
+    expect(id).toBe('conv-existing');
+  });
+
   it('swallows a message-insert throw and never rejects (in-memory chat unaffected)', async () => {
     const capture: Capture = { tables: [] };
     await expect(

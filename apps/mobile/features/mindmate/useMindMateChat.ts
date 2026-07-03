@@ -142,14 +142,20 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
         // a crisis turn (crisis content stays on-device). persistImpl self-no-ops unless
         // the user consented AND is signed in, so consent OFF writes nothing. Fire-and-
         // forget — a failed/blocked write never affects the in-memory conversation.
-        if (!turnMeta?.isCrisis) {
+        //
+        // FAIL-CLOSED (PR-073): `turnMeta` is only set by the stream's `done` event.
+        // A stream that drops before `done` (serverless timeout, proxy close) leaves
+        // it undefined — and may have carried a `safety: CRISIS` event we never saw
+        // reflected into meta. No verdict ⇒ no cloud write. `!turnMeta?.isCrisis`
+        // here would treat "unknown" as "safe" and bypass both defenses.
+        if (turnMeta && !turnMeta.isCrisis) {
           void persistImpl({
-            sessionId: turnMeta?.sessionId ?? sessionId.current ?? '',
+            sessionId: turnMeta.sessionId || (sessionId.current ?? ''),
             conversationId: conversationId.current,
             userContent,
             assistantContent: assistantText,
-            safetyLevel: turnMeta?.safetyLevel,
-            citations: turnMeta?.citations,
+            safetyLevel: turnMeta.safetyLevel,
+            citations: turnMeta.citations,
           }).then((id) => {
             if (id) conversationId.current = id;
           });
