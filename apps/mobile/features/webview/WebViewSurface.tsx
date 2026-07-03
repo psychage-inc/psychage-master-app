@@ -8,7 +8,12 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { GlobalHeader } from '@/components/GlobalHeader';
 import { Text } from '@/components/ui/Text';
-import { AUTH_SIGN_IN_ROUTE, type WvtIssuer, stubWvtIssuer } from '@/features/webview/auth-handshake';
+import {
+  AUTH_SIGN_IN_ROUTE,
+  type WvtIssuer,
+  WvtUnavailableError,
+  stubWvtIssuer,
+} from '@/features/webview/auth-handshake';
 import { CT4_WEBVIEW } from '@/features/webview/copy';
 import { type SurfaceSlug, SURFACES } from '@/features/webview/surfaces';
 import { WebViewError } from '@/features/webview/WebViewError';
@@ -54,20 +59,28 @@ export function WebViewSurface({ surface, params, issuer = stubWvtIssuer }: WebV
   const [state, dispatch] = useReducer(wvLoadReducer, INITIAL_WV_LOAD_STATE);
   const [wvt, setWvt] = useState<string | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
+  const [unavailable, setUnavailable] = useState(false);
 
   const def = SURFACES[surface];
   const path = params?.id ? `${def.path}/${encodeURIComponent(params.id)}` : def.path;
 
   // Begin a load attempt: start the machine, arm a fresh timer pair (via `attempt`),
-  // and issue the wvt. A failed issuance routes to sign-in (B1 S34) — generic, no
-  // token leak. (In B2 the stub always throws, so this is the expected path.)
+  // and issue the wvt. An AUTH failure routes to sign-in (B1 S34) — generic, no
+  // token leak. The B2 stub throws WvtUnavailableError, which is NOT an auth
+  // problem: bouncing every user (signed-in included) to /sign-in and then a
+  // forever-skeleton made all three WebView surfaces dead ends (PR-057). The
+  // gated case now renders an honest "not available yet" state instead.
   const start = useCallback(async () => {
     dispatch({ type: 'START' });
     setAttempt((a) => a + 1);
     try {
       const issue = await issuer.issue(surface);
       setWvt(issue.wvt);
-    } catch {
+    } catch (error) {
+      if (error instanceof WvtUnavailableError) {
+        setUnavailable(true);
+        return;
+      }
       router.push(AUTH_SIGN_IN_ROUTE);
     }
   }, [issuer, surface]);
@@ -127,7 +140,19 @@ export function WebViewSurface({ surface, params, issuer = stubWvtIssuer }: WebV
         </Pressable>
       </View>
 
-      {!online ? (
+      {unavailable ? (
+        <View className="flex-1 items-center justify-center gap-3 p-8" testID="wv-unavailable">
+          <Text variant="h2" className="text-center">
+            {CT4_WEBVIEW.unavailableTitle}
+          </Text>
+          <Text
+            variant="body"
+            className="text-center text-text-secondary dark:text-text-secondary-dark"
+          >
+            {CT4_WEBVIEW.unavailableBody}
+          </Text>
+        </View>
+      ) : !online ? (
         <OfflineFallback variant="offline" onRetry={start} testID="wv-offline" />
       ) : state.phase === 'error' ? (
         <WebViewError onRetry={start} />

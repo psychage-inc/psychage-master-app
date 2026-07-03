@@ -8,6 +8,9 @@ export const CT4_WEBVIEW = {
   stillLoading: 'Still loading…',
   loadError: "We couldn't load this. Try again",
   retry: 'Try again',
+  unavailableTitle: 'Not available here yet',
+  unavailableBody:
+    'This section is coming to the app soon. For now, you can find it on psychage.com.',
   titles: {
     library: 'Library',
     librarySearch: 'Search the library',
