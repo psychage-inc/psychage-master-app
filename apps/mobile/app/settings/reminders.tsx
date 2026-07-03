@@ -2,7 +2,7 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { SettingsRow } from '@/components/settings/SettingsRow';
 import { SettingsSection } from '@/components/settings/SettingsSection';
@@ -43,7 +43,10 @@ export default function RemindersScreen() {
   };
 
   const onPickerChange = (event: DateTimePickerEvent, date?: Date) => {
-    setShowPicker(false);
+    // Android's picker is a one-shot dialog: it fires once ('set' or 'dismissed'),
+    // so close it either way. iOS's inline spinner fires a 'set' on EVERY wheel
+    // detent — keep it open and commit the value live (the time row toggles it away).
+    if (Platform.OS === 'android') setShowPicker(false);
     if (event.type !== 'set' || !date) return;
     persist({ enabled: true, time: dateToHhmm(date), neverAsked: settings.neverAsked });
     setLastAction('set');
@@ -79,7 +82,7 @@ export default function RemindersScreen() {
               label={t.timeLabel}
               value={formatReminderTime(settings.time)}
               chevron={false}
-              onPress={() => setShowPicker(true)}
+              onPress={() => setShowPicker((visible) => !visible)}
               testID="reminder-time-row"
             />
           ) : null}

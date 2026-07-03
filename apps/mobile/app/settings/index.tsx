@@ -159,14 +159,17 @@ export default function SettingsHubScreen() {
           </BentoCard>
         </BentoGrid>
 
-        <View className="px-1 pt-6 pb-2">
-          <Text
-            variant="caption"
-            className="text-text-tertiary dark:text-text-tertiary-dark text-center"
-          >
-            {t._marker}
-          </Text>
-        </View>
+        {/* Internal fixture marker — dev builds only, never shown to users. */}
+        {__DEV__ ? (
+          <View className="px-1 pt-6 pb-2">
+            <Text
+              variant="caption"
+              className="text-text-tertiary dark:text-text-tertiary-dark text-center"
+            >
+              {t._marker}
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </ScreenShell>
   );

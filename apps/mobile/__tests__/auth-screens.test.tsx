@@ -104,6 +104,37 @@ describe('SignInForm (S32) — signup discoverability (P15)', () => {
   });
 });
 
+describe('SignInForm (S32) — password gate (PR-080)', () => {
+  it('submits a password shorter than the sign-up minimum (server decides validity)', () => {
+    const onSubmit = jest.fn();
+    renderWithProviders(
+      <SignInForm onSubmit={onSubmit} onProvider={jest.fn()} onForgotPassword={jest.fn()} />,
+      { haptics: true },
+    );
+
+    fireEvent.changeText(screen.getByLabelText(AUTH_COPY.emailLabel), 'person@example.com');
+    fireEvent.changeText(screen.getByLabelText(AUTH_COPY.passwordLabel), 'short');
+    fireEvent.press(screen.getByRole('button', { name: AUTH_COPY.signInPrimary }));
+
+    expect(screen.queryByText(AUTH_COPY.passwordShortLine)).toBeNull();
+    expect(onSubmit).toHaveBeenCalledWith('person@example.com', 'short');
+  });
+
+  it('still blocks an empty password with the calm inline line', () => {
+    const onSubmit = jest.fn();
+    renderWithProviders(
+      <SignInForm onSubmit={onSubmit} onProvider={jest.fn()} onForgotPassword={jest.fn()} />,
+      { haptics: true },
+    );
+
+    fireEvent.changeText(screen.getByLabelText(AUTH_COPY.emailLabel), 'person@example.com');
+    fireEvent.press(screen.getByRole('button', { name: AUTH_COPY.signInPrimary }));
+
+    expect(screen.getByText(AUTH_COPY.passwordEmptyLine)).toBeTruthy();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
 describe('VerifyPanel (S35)', () => {
   it('disables resend during the cooldown and re-enables after it', () => {
     jest.useFakeTimers();

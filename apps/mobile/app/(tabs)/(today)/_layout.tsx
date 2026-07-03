@@ -8,7 +8,10 @@ import { useReducedMotion } from '@/lib/motion';
 // render their own chrome. Nesting these under the tab is what keeps the bottom
 // bar present when the user drills in — the former root-level placement rendered
 // them outside the Tabs navigator, so the bar vanished. Animation mirrors the root
-// stack and honors reduced motion.
+// stack and honors reduced motion. initialRouteName keeps deep links to nested
+// routes (history, reflection) mounting the landing beneath them so Back works.
+export const unstable_settings = { initialRouteName: 'index' };
+
 export default function TodayStackLayout() {
   const reduced = useReducedMotion();
   return (

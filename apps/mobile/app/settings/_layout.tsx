@@ -1,8 +1,9 @@
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { Pressable } from 'react-native';
 
 import { CT4_SETTINGS } from '@/features/settings/copy';
+import { goBackOr } from '@/lib/nav';
 import { useThemeColors } from '@/lib/use-theme-colors';
 import { useReducedMotion } from '@/lib/motion';
 
@@ -29,13 +30,14 @@ export default function SettingsLayout() {
         options={{
           title: t.hub.title,
           // `index` is the root of this stack, so it gets no native back chevron.
-          // The settings stack is pushed over the tabs, so router.back() pops back
-          // to wherever the user opened Settings from (GlobalHeader avatar → tabs).
+          // The settings stack is pushed over the tabs, so back pops to wherever the
+          // user opened Settings from (GlobalHeader avatar → tabs). goBackOr covers a
+          // deep-link cold start into /settings, where there is nothing to pop.
           headerLeft: () => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Back"
-              onPress={() => router.back()}
+              onPress={() => goBackOr('/')}
               hitSlop={8}
               className="h-11 w-11 items-center justify-center"
             >
