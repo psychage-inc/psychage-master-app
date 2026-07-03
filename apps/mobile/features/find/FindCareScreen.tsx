@@ -142,8 +142,8 @@ function Tap({ onPress, children, className, style, accessibilityLabel, accessib
   const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   const cfg = { damping: 20, stiffness: 400, mass: 0.6 };
   return (
-    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? 'button'} onPress={onPress} onPressIn={() => { s.value = withSpring(activeScale, cfg); }} onPressOut={() => { s.value = withSpring(1, cfg); }}>
-      <Animated.View className={className} style={[a, style]}>{children}</Animated.View>
+    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? 'button'} onPress={onPress} onPressIn={() => { s.value = withSpring(activeScale, cfg); }} onPressOut={() => { s.value = withSpring(1, cfg); }} style={style}>
+      <Animated.View className={className} style={a}>{children}</Animated.View>
     </Pressable>
   );
 }
@@ -198,7 +198,7 @@ export default function FindCareScreen() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [sort, setSort] = useState<'relevance' | 'name' | 'distance'>('relevance');
-  const [sheet, setSheet] = useState<null | 'sort' | 'crisis' | 'addProvider'>(null);
+  const [sheet, setSheet] = useState<null | 'sort' | 'addProvider'>(null);
 
   // My providers — local-first (works signed-out), used for save + compare + call list.
   const my = useMyProviders();
@@ -310,7 +310,7 @@ export default function FindCareScreen() {
             <View className="p-1.5"><Bookmark size={20} color={my.items.length ? teal : ink} fill={my.items.length ? teal : 'transparent'} /></View>
           </Tap>
         )}
-        <Tap activeScale={0.9} onPress={() => setSheet('crisis')}>
+        <Tap activeScale={0.9} accessibilityLabel="Help now" onPress={() => router.push('/crisis')}>
           <View className="flex-row items-center gap-1.5 bg-error/10 dark:bg-error-dark/20 border border-error/30 dark:border-error-dark/40 rounded-full px-4 py-1.5 shadow-sm dark:shadow-none">
             <LifeBuoy size={16} color={red} /><Text className="font-sans-bold text-[14px] text-error dark:text-error-dark">Help</Text>
           </View>
@@ -506,7 +506,7 @@ export default function FindCareScreen() {
           <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-base leading-6 text-center mb-6">Our provider directory lists NPI-registered providers in the United States only, for now. You can still browse every U.S. provider — and we're working to reach your country soon.</Text>
           <Primary label="Browse U.S. providers" onPress={() => setStep('manual')} />
           <Tap onPress={() => setStep('manual')}><View className="py-3.5 items-center"><Text className="font-sans-bold text-base text-primary dark:text-primary-dark">I'm actually in the U.S.</Text></View></Tap>
-          <Tap onPress={() => setSheet('crisis')}>
+          <Tap accessibilityLabel="Help now" onPress={() => router.push('/crisis')}>
             <View className="flex-row items-center justify-center gap-1.5 mt-1 py-2">
               <LifeBuoy size={15} color={red} />
               <Text className="font-sans-medium text-sm text-error dark:text-error-dark">In crisis? See help options</Text>
@@ -704,7 +704,6 @@ export default function FindCareScreen() {
       ) : null}
 
       <SortSheet visible={sheet === 'sort'} value={sort} geo={false} onSelect={(v) => { setSort(v); setSheet(null); }} onClose={() => setSheet(null)} />
-      <CrisisSheet visible={sheet === 'crisis'} onClose={() => setSheet(null)} />
     </SafeAreaView>
   );
 }
@@ -896,39 +895,6 @@ function SortSheet({ visible, value, geo, onSelect, onClose }: { visible: boolea
                 </View>
               </Tap>
             ))}
-          </View>
-        </Animated.View>
-      </Pressable>
-    </Modal>
-  );
-}
-function CrisisSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colorScheme } = useColorScheme();
-  const ink = colorScheme === 'dark' ? colors.text.primary.dark : colors.text.primary.light;
-  const red = colorScheme === 'dark' ? colors.crisis.dark : colors.crisis.light;
-  return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
-        <Animated.View entering={SlideInDown.springify().damping(20).stiffness(300)} className="bg-background dark:bg-background-dark rounded-t-[32px] pt-3 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-          <View className="w-12 h-1.5 bg-border dark:bg-border-dark rounded-full self-center mb-4" />
-          <View className="flex-row items-center justify-between px-6 pb-4 border-b border-border/40 dark:border-border-dark/40">
-            <View className="w-10" />
-            <Text className="font-display text-xl text-text-primary dark:text-text-primary-dark">Help now</Text>
-            <Tap activeScale={0.8} onPress={onClose}><View className="p-2 bg-surface-active dark:bg-surface-active-dark rounded-full"><X size={20} color={ink} /></View></Tap>
-          </View>
-          <View className="px-6 pt-5 gap-4">
-            <Tap activeScale={0.96} onPress={() => { dial('988'); }}>
-              <View className="flex-row items-center gap-4 bg-surface dark:bg-surface-dark border border-error/20 dark:border-error-dark/20 rounded-[20px] p-5 shadow-sm">
-                <View className="w-12 h-12 rounded-full bg-error/10 dark:bg-error-dark/20 items-center justify-center"><Phone size={20} color={red} /></View>
-                <View className="flex-1"><Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-[17px]">Call 988</Text><Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-[14px] mt-0.5">Suicide & Crisis Lifeline</Text></View>
-              </View>
-            </Tap>
-            <Tap activeScale={0.96} onPress={() => { dial('tel:911'); }}>
-              <View className="flex-row items-center gap-4 bg-surface dark:bg-surface-dark border border-error/20 dark:border-error-dark/20 rounded-[20px] p-5 shadow-sm">
-                <View className="w-12 h-12 rounded-full bg-error/10 dark:bg-error-dark/20 items-center justify-center"><Phone size={20} color={red} /></View>
-                <View className="flex-1"><Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-[17px]">Call 911</Text><Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-[14px] mt-0.5">Emergency Services</Text></View>
-              </View>
-            </Tap>
           </View>
         </Animated.View>
       </Pressable>
