@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { ToolScreen } from '@/components/ui/ToolScreen';
+import { localeDeviceRegionHint } from '@/features/crisis/device-region';
 import { CRISIS_DATASET } from '@/features/crisis/helplines.fixtures';
 import {
   defaultDeviceRegionHint,
@@ -34,7 +35,7 @@ import { MessageList } from './MessageList';
 function resolveActiveRegion() {
   return resolveRegion({
     storedOverride: loadRegionOverride(storage),
-    deviceHint: defaultDeviceRegionHint(),
+    deviceHint: localeDeviceRegionHint() ?? defaultDeviceRegionHint(),
   });
 }
 

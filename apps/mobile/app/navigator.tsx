@@ -7,6 +7,7 @@ import {
   type UserSymptomInput,
 } from '@psychage/shared/navigator';
 
+import { localeDeviceRegionHint } from '@/features/crisis/device-region';
 import { CRISIS_DATASET } from '@/features/crisis/helplines.fixtures';
 import {
   defaultDeviceRegionHint,
@@ -51,7 +52,7 @@ export default function NavigatorScreen() {
   const reduced = useReducedMotion();
   const region = resolveRegion({
     storedOverride: loadRegionOverride(storage),
-    deviceHint: defaultDeviceRegionHint(),
+    deviceHint: localeDeviceRegionHint() ?? defaultDeviceRegionHint(),
   });
 
   return (
