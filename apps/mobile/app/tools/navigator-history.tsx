@@ -1,5 +1,6 @@
 import { router, Stack } from 'expo-router';
 import { useReducer, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { ToolScreen } from '@/components/ui/ToolScreen';
 import { NAVIGATOR_COPY } from '@/features/navigator/copy';
@@ -13,6 +14,7 @@ import {
 import type { NavigatorSnapshot } from '@/features/navigator/result-store';
 import { generateAndShare } from '@/features/therapist';
 import { expoPdfPrinter } from '@/features/therapist/pdf/expo-printer';
+import { PDF_SHARE_FAILED_COPY } from '@/features/therapist/pdf/printer';
 import { storage } from '@/lib/adapters/storage';
 import { goBackOr } from '@/lib/nav';
 import { getNavigatorStore } from '@/lib/navigator-store';
@@ -29,18 +31,27 @@ export default function NavigatorHistoryRoute() {
   const snapshots = getNavigatorStore().getRecent(50);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [overTime, setOverTime] = useState(false);
+  // Double-tap guard: one generate/share at a time (a second share sheet rejects on Android).
+  const [sharing, setSharing] = useState(false);
   const selected = selectedId ? snapshots.find((s) => s.id === selectedId) : undefined;
 
-  const shareSnapshot = (snapshot: NavigatorSnapshot) => {
-    const areas: NavigatorSummaryArea[] = snapshot.results.results
-      .slice(0, 5)
-      .map((r) => ({ name: r.name, relevance: r.relevance_label }));
-    const html = buildNavigatorSummaryHtml({
-      fullName: loadPersonalization(storage).name ?? NAVIGATOR_COPY.summaryDocTitle,
-      date: snapshot.date,
-      areas,
-    });
-    void generateAndShare(html, expoPdfPrinter);
+  const shareSnapshot = async (snapshot: NavigatorSnapshot) => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const areas: NavigatorSummaryArea[] = snapshot.results.results
+        .slice(0, 5)
+        .map((r) => ({ name: r.name, relevance: r.relevance_label }));
+      const html = buildNavigatorSummaryHtml({
+        fullName: loadPersonalization(storage).name ?? NAVIGATOR_COPY.summaryDocTitle,
+        date: snapshot.date,
+        areas,
+      });
+      const { ok } = await generateAndShare(html, expoPdfPrinter);
+      if (!ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
+    } finally {
+      setSharing(false);
+    }
   };
 
   const deleteSnapshot = (id: string) => {
@@ -59,7 +70,7 @@ export default function NavigatorHistoryRoute() {
     body = (
       <NavigatorHistoryDetail
         snapshot={selected}
-        onDownload={() => shareSnapshot(selected)}
+        onDownload={() => void shareSnapshot(selected)}
         onDelete={() => deleteSnapshot(selected.id)}
       />
     );

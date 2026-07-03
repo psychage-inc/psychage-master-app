@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
+import { Alert } from 'react-native';
 
 import { PdfPreview } from '@/components/therapist/PdfPreview';
 import type { TerrainDay } from '@/components/terrain/terrain-geometry';
@@ -13,6 +14,7 @@ import {
 } from '@/features/therapist';
 import type { TherapistToolSummaries } from '@/features/therapist/pdf/build-html';
 import { expoPdfPrinter } from '@/features/therapist/pdf/expo-printer';
+import { PDF_SHARE_FAILED_COPY } from '@/features/therapist/pdf/printer';
 import type { LocalCalendarDate } from '@psychage/shared/engagement';
 import { dailyRollupReader } from '@/lib/daily-rollup';
 import { getMomentStore } from '@/lib/moment-store';
@@ -132,7 +134,11 @@ export default function PreviewScreen() {
       // Opt-in only — default share stays check-ins-only to match the consent copy.
       tools: includeTools ? buildToolSummaries(data.from, data.to) : undefined,
     });
-    void generateAndShare(html, expoPdfPrinter);
+    void generateAndShare(html, expoPdfPrinter).then((result) => {
+      // Same calm feedback as every other export surface (PR-025) — a failed
+      // print/share must not be a silent no-op.
+      if (!result.ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
+    });
   };
 
   return (

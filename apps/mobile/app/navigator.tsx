@@ -1,4 +1,5 @@
 import { router, Stack } from 'expo-router';
+import { Alert } from 'react-native';
 
 import {
   generateProviderQuestions,
@@ -25,6 +26,7 @@ import {
 } from '@/features/navigator/pdf/build-navigator-html';
 import { generateAndShare } from '@/features/therapist';
 import { expoPdfPrinter } from '@/features/therapist/pdf/expo-printer';
+import { PDF_SHARE_FAILED_COPY } from '@/features/therapist/pdf/printer';
 import { isTierEnabled } from '@/lib/adapters';
 import { storage } from '@/lib/adapters/storage';
 import { useReducedMotion } from '@/lib/motion';
@@ -81,7 +83,7 @@ export default function NavigatorScreen() {
         emergencyNumber={getEmergencyNumber(CRISIS_DATASET, region)}
         helplines={getHelplines(CRISIS_DATASET, region)}
         onFindCare={() => router.push('/find')}
-        onDownloadSummary={(areas: NavigatorSummaryArea[]) => {
+        onDownloadSummary={async (areas: NavigatorSummaryArea[]) => {
           // Build LOCALLY (offline) + hand to the platform share sheet (SR-4: Psychage
           // never transmits). Summary-only — LABELS, no raw answers, no confidence number.
           const html = buildNavigatorSummaryHtml({
@@ -89,7 +91,8 @@ export default function NavigatorScreen() {
             date: localToday(),
             areas,
           });
-          void generateAndShare(html, expoPdfPrinter);
+          const { ok } = await generateAndShare(html, expoPdfPrinter);
+          if (!ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
         }}
         onHome={() => router.replace('/')}
         onViewHistory={() => router.push('/tools/navigator-history')}

@@ -1,4 +1,6 @@
 import { Stack } from 'expo-router';
+import { useState } from 'react';
+import { Alert } from 'react-native';
 
 import { SessionPrepView, type SessionPrepWindow } from '@/components/therapist/SessionPrepView';
 import {
@@ -9,6 +11,7 @@ import {
   THERAPIST_COPY,
 } from '@/features/therapist';
 import { expoPdfPrinter } from '@/features/therapist/pdf/expo-printer';
+import { PDF_SHARE_FAILED_COPY } from '@/features/therapist/pdf/printer';
 import { storage } from '@/lib/adapters/storage';
 import { getMomentStore } from '@/lib/moment-store';
 import { getNavigatorStore } from '@/lib/navigator-store';
@@ -42,6 +45,9 @@ function gather(window: SessionPrepWindow) {
 }
 
 export default function SessionPrepScreen() {
+  // Double-tap guard: one generate/share at a time (a second share sheet rejects on Android).
+  const [busy, setBusy] = useState(false);
+
   const countForWindow = (window: SessionPrepWindow) => {
     const { moments, sleep, navigatorRun } = gather(window);
     const includes: string[] = [];
@@ -54,27 +60,34 @@ export default function SessionPrepScreen() {
     };
   };
 
-  const onGenerate = (fullName: string, window: SessionPrepWindow) => {
-    const { moments, sleep, navigatorRun } = gather(window);
-    const name = fullName || loadPersonalization(storage).name || uc.nameFallback;
-    const navigatorSummary = navigatorRun
-      ? {
-          date: navigatorRun.date,
-          areas: navigatorRun.results.results
-            .slice(0, 5)
-            .map((r) => ({ name: r.name, relevance: r.relevance_label })),
-        }
-      : undefined;
-    const html = buildUnifiedExportHtml({
-      fullName: name,
-      from: window.from,
-      to: window.to,
-      generatedAt: new Date(),
-      moments: moments.length > 0 ? buildSessionPrepSummary(moments, window) : undefined,
-      sleep: sleep.length > 0 ? sleep : undefined,
-      navigator: navigatorSummary,
-    });
-    void generateAndShare(html, expoPdfPrinter);
+  const onGenerate = async (fullName: string, window: SessionPrepWindow) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { moments, sleep, navigatorRun } = gather(window);
+      const name = fullName || loadPersonalization(storage).name || uc.nameFallback;
+      const navigatorSummary = navigatorRun
+        ? {
+            date: navigatorRun.date,
+            areas: navigatorRun.results.results
+              .slice(0, 5)
+              .map((r) => ({ name: r.name, relevance: r.relevance_label })),
+          }
+        : undefined;
+      const html = buildUnifiedExportHtml({
+        fullName: name,
+        from: window.from,
+        to: window.to,
+        generatedAt: new Date(),
+        moments: moments.length > 0 ? buildSessionPrepSummary(moments, window) : undefined,
+        sleep: sleep.length > 0 ? sleep : undefined,
+        navigator: navigatorSummary,
+      });
+      const { ok } = await generateAndShare(html, expoPdfPrinter);
+      if (!ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

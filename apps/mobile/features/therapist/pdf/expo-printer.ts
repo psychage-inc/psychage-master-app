@@ -54,8 +54,11 @@ export const expoPdfPrinter: PdfPrinter = {
     return uri;
   },
   async share(uri: string) {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+    if (!(await Sharing.isAvailableAsync())) {
+      // No share surface on this device — a FAILURE the caller must hear about,
+      // never a silent no-op (generateAndShare converts it to { ok: false }).
+      throw new Error('sharing-unavailable');
     }
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
   },
 };

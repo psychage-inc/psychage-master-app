@@ -1,6 +1,6 @@
 import { ExternalLink, MessageCircle, Phone } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Linking, Modal, Pressable, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -18,6 +18,13 @@ export interface SafetyAlertProps {
   readonly visible: boolean;
   readonly onDismiss: () => void;
   readonly onCrisis: () => void;
+}
+
+// A device without a tel:/sms: handler (e.g. a Wi-Fi-only tablet) REJECTS openURL —
+// a crisis resource must never silently no-op. Fall back to showing the resource and
+// its number/text target in an alert, so the person can still reach it from a phone.
+function openResourceOrShow(url: string, title: string, fallbackBody: string): void {
+  Linking.openURL(url).catch(() => Alert.alert(title, fallbackBody));
 }
 
 function ResourceRow({
@@ -70,13 +77,25 @@ export function SafetyAlert({ visible, onDismiss, onCrisis }: SafetyAlertProps) 
               icon={<Phone size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
               title={t.dvTitle}
               sub={t.dvSub}
-              onPress={() => Linking.openURL(t.dvTel)}
+              onPress={() =>
+                openResourceOrShow(
+                  t.dvTel,
+                  t.dvTitle,
+                  `Calling isn't available on this device. From any phone: ${t.dvSub}`,
+                )
+              }
             />
             <ResourceRow
               icon={<MessageCircle size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
               title={t.textTitle}
               sub={t.textSub}
-              onPress={() => Linking.openURL(t.textSms)}
+              onPress={() =>
+                openResourceOrShow(
+                  t.textSms,
+                  t.textTitle,
+                  `Texting isn't available on this device. From any phone: ${t.textSub}`,
+                )
+              }
             />
             <ResourceRow
               icon={<ExternalLink size={16} color={colors.text.secondary.light} strokeWidth={1.75} />}

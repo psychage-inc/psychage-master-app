@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 
 import { SettingsSection } from '@/components/settings/SettingsSection';
 import { SettingsToggleRow } from '@/components/settings/SettingsToggleRow';
@@ -40,6 +40,10 @@ export default function PrivacyScreen() {
       const entries = readAllEntries(dailyRollupReader(getMomentStore()));
       const content = format === 'json' ? toJSON(entries) : toCSV(entries);
       await shareRecordFile(format, content);
+    } catch {
+      // File write / share sheet can fail (disk full, sheet already open) —
+      // calm feedback, never a silent no-op or an unhandled rejection.
+      Alert.alert("Couldn't export your record right now", 'Please try again in a moment.');
     } finally {
       setBusy(false);
     }
