@@ -1,5 +1,9 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
+// MindMateView reads live connectivity for its status strip (PR-070) — mock the
+// seam so the real NetInfo native module never loads under jest.
+jest.mock('@/features/offline/useIsOnline', () => ({ useIsOnline: jest.fn(() => true) }));
+
 import { MindMateView } from '@/features/mindmate/components/MindMateView';
 import type { persistExchange } from '@/features/mindmate/persistence/chat-store';
 import type { sendMessage } from '@/features/mindmate/mindmate-service';
