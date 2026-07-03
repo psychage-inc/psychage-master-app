@@ -9,7 +9,7 @@
 // splash-screen → noop native module. Storage stays the real in-memory seam.
 import { render } from '@testing-library/react-native';
 
-jest.mock('expo-font', () => ({ useFonts: () => [true] }));
+jest.mock('expo-font', () => ({ useFonts: jest.fn(() => [true]) }));
 jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(),
   hideAsync: jest.fn(),
@@ -33,13 +33,26 @@ jest.mock('expo-router', () => {
   return { Stack, router, useRouter: () => router };
 });
 
+import { useFonts } from 'expo-font';
+
 import RootLayout from '@/app/_layout';
 import { storage } from '@/lib/adapters/storage';
 import { STORAGE_KEY } from '@/lib/persistence/tier-flags';
 
 describe('RootLayout — cold-start smoke', () => {
+  beforeEach(() => {
+    (useFonts as jest.Mock).mockReturnValue([true]);
+  });
+
   it('mounts the provider/font/cold-start chain without throwing', () => {
     expect(() => render(<RootLayout />)).not.toThrow();
+  });
+
+  it('a font-load ERROR still mounts the app (system fonts) instead of hanging the gate', () => {
+    (useFonts as jest.Mock).mockReturnValue([false, new Error('font failed to load')]);
+    const { toJSON } = render(<RootLayout />);
+    // The gate treats `loaded || error` as settled — the tree renders, it is not held at null.
+    expect(toJSON()).not.toBeNull();
   });
 
   it('its side-effect featureFlags import hydrated tier flags into the storage seam', () => {

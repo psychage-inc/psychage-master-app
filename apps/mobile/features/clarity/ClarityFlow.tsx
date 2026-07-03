@@ -87,15 +87,15 @@ export function ClarityFlow({
     [result],
   );
 
-  // Persist exactly once per completion (on entering the calculating interlude), then
-  // snapshot history (which now includes this result) for the History tab.
+  // Persist exactly once per run (on entering the calculating interlude), then
+  // snapshot history (which now includes this result) for the History tab. The guard
+  // deliberately does NOT re-arm on BACK from calculating/results — walking back to
+  // q20 and re-answering it in the same sitting must not persist a second snapshot.
+  // It re-arms only when an explicitly new run starts (Retake → RESET, below).
   const savedForResults = useRef(false);
   const [history, setHistory] = useState<ClarityHistoryItem[]>([]);
   useEffect(() => {
-    if (state.step !== 'calculating' && state.step !== 'results') {
-      savedForResults.current = false;
-      return;
-    }
+    if (state.step !== 'calculating' && state.step !== 'results') return;
     if (result && !savedForResults.current) {
       savedForResults.current = true;
       saveResult(result);
@@ -120,7 +120,11 @@ export function ClarityFlow({
           recommendations={recommendations}
           history={history}
           onRecommend={onRecommend}
-          onRetake={() => dispatch({ type: 'RESET' })}
+          onRetake={() => {
+            // Explicit new run: re-arm the once-per-run persist guard, then reset.
+            savedForResults.current = false;
+            dispatch({ type: 'RESET' });
+          }}
         />
       </ToolScreen>
     );

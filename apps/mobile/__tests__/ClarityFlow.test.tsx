@@ -89,6 +89,36 @@ describe('ClarityFlow', () => {
     expect(saved.tier).toBe(expected.tier);
   });
 
+  it('walking back from results and re-answering q20 does not persist a second snapshot; Retake re-arms the guard', async () => {
+    const handlers = renderFlow();
+    press('Begin');
+    for (const q of CLARITY_QUESTIONS) {
+      press(req(q.options[0], q.id).label);
+    }
+    await screen.findByText('/ 100', {}, { timeout: 4000 });
+    expect(handlers.saveResult).toHaveBeenCalledTimes(1);
+
+    // Back re-opens the last question; re-answering it re-enters calculating → results…
+    press('Back');
+    expect(screen.getByText('Question 20 of 20')).toBeTruthy();
+    const q20 = req(CLARITY_QUESTIONS[CLARITY_QUESTIONS.length - 1], 'q20');
+    press(req(q20.options[0], 'q20 option').label);
+    await screen.findByText('/ 100', {}, { timeout: 4000 });
+
+    // …but the once-per-run persist guard holds: still exactly one snapshot saved.
+    expect(handlers.saveResult).toHaveBeenCalledTimes(1);
+
+    // Retake is an explicitly new run — the guard re-arms and a completed second
+    // run persists again.
+    press('Retake assessment');
+    press('Begin');
+    for (const q of CLARITY_QUESTIONS) {
+      press(req(q.options[0], q.id).label);
+    }
+    await screen.findByText('/ 100', {}, { timeout: 4000 });
+    expect(handlers.saveResult).toHaveBeenCalledTimes(2);
+  }, 20000);
+
   it('the crisis interstitial routes to the crisis surface', () => {
     const handlers = renderFlow();
     press('Begin');

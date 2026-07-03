@@ -19,8 +19,8 @@ import { colors } from '@/lib/colors';
 // Articles read live via the linked_condition_ids join; FlashList for the list.
 export function ConditionArticlesView({ slug }: { slug: string }) {
   const t = CONDITIONS_COPY;
-  const { data: condition } = useConditionGuide(slug);
-  const { data: articles, isLoading } = useConditionArticles(condition?.id);
+  const { data: condition, isLoading: guideLoading } = useConditionGuide(slug);
+  const { data: articles, isLoading: articlesLoading } = useConditionArticles(condition?.id);
 
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
@@ -42,32 +42,49 @@ export function ConditionArticlesView({ slug }: { slug: string }) {
         </AnimatedPressable>
       </View>
 
-      <FlashList
-        data={articles ?? []}
-        keyExtractor={(item: ArticleListItem) => item.slug}
-        contentContainerClassName="px-5 pb-12"
-        ItemSeparatorComponent={() => <View className="h-3.5" />}
-        ListHeaderComponent={
-          <View className="gap-1.5 pb-4">
-            <Text variant="h1">{condition?.name ?? ''}</Text>
+      {condition == null ? (
+        // Guide still resolving = loading (the articles query is disabled until the
+        // id resolves, so its isLoading alone would flash the empty state); a resolved
+        // miss (unknown slug) gets a real not-found, mirroring ConditionGuideView.
+        guideLoading ? (
+          <View className="items-center py-12">
+            <AppLoader label="Loading articles" />
+          </View>
+        ) : (
+          <View className="px-5 pt-4" testID="condition-articles-not-found">
             <Text variant="body" className="text-text-secondary dark:text-text-secondary-dark">
-              {t.articlesIntro}
+              {t.notFound}
             </Text>
           </View>
-        }
-        ListEmptyComponent={
-          isLoading ? (
-            <View className="items-center py-12">
-              <AppLoader label="Loading articles" />
+        )
+      ) : (
+        <FlashList
+          data={articles ?? []}
+          keyExtractor={(item: ArticleListItem) => item.slug}
+          contentContainerClassName="px-5 pb-12"
+          ItemSeparatorComponent={() => <View className="h-3.5" />}
+          ListHeaderComponent={
+            <View className="gap-1.5 pb-4">
+              <Text variant="h1">{condition.name}</Text>
+              <Text variant="body" className="text-text-secondary dark:text-text-secondary-dark">
+                {t.articlesIntro}
+              </Text>
             </View>
-          ) : (
-            <Text variant="body" className="py-10 text-center text-text-tertiary dark:text-text-tertiary-dark">
-              {t.articlesEmpty}
-            </Text>
-          )
-        }
-        renderItem={({ item }: { item: ArticleListItem }) => <ArticleListCard article={item} />}
-      />
+          }
+          ListEmptyComponent={
+            articlesLoading ? (
+              <View className="items-center py-12">
+                <AppLoader label="Loading articles" />
+              </View>
+            ) : (
+              <Text variant="body" className="py-10 text-center text-text-tertiary dark:text-text-tertiary-dark">
+                {t.articlesEmpty}
+              </Text>
+            )
+          }
+          renderItem={({ item }: { item: ArticleListItem }) => <ArticleListCard article={item} />}
+        />
+      )}
     </View>
   );
 }

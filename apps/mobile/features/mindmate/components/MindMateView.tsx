@@ -13,6 +13,7 @@ import {
   loadRegionOverride,
   resolveRegion,
 } from '@/features/crisis/region';
+import { useIsOnline } from '@/features/offline/useIsOnline';
 import { AUTH_SIGN_IN_ROUTE } from '@/features/webview/auth-handshake';
 import { storage } from '@/lib/adapters/storage';
 
@@ -68,6 +69,7 @@ export function MindMateView({
 }: MindMateViewProps) {
   const activeRegion = region ?? resolveActiveRegion();
   const hotline = resolvePrimaryHotline(activeRegion);
+  const online = useIsOnline();
   const [consentDismissed, setConsentDismissed] = useState(false);
 
   const { messages, status, error, crisisActive, needsSignIn, send, retry } = useMindMateChat({
@@ -79,11 +81,18 @@ export function MindMateView({
 
   return (
     <ToolScreen scroll="none" keyboardAvoiding title="MindMate" onBack={onBack} edges={['top']}>
-      {/* Live status — relocated out of the header into a thin strip atop the chat. */}
+      {/* Live status — relocated out of the header into a thin strip atop the chat.
+          Reflects real connectivity: neutral dot + calm "Offline" when disconnected. */}
       <View className="flex-row items-center justify-center gap-1.5 pb-2">
-        <View className="h-1.5 w-1.5 rounded-full bg-primary dark:bg-primary-dark" />
+        <View
+          className={
+            online
+              ? 'h-1.5 w-1.5 rounded-full bg-primary dark:bg-primary-dark'
+              : 'h-1.5 w-1.5 rounded-full bg-text-tertiary dark:bg-text-tertiary-dark'
+          }
+        />
         <Text variant="caption" className="text-xs text-text-secondary dark:text-text-secondary-dark">
-          Online
+          {online ? 'Online' : 'Offline'}
         </Text>
       </View>
 

@@ -24,7 +24,8 @@ const TIER_ORDER: readonly ScoreTier[] = ['thriving', 'balanced', 'struggling', 
 const OVERVIEW: ReadonlyArray<{ icon: LucideIcon; title: string; desc: string }> = [
   { icon: ClipboardList, title: '20 Questions', desc: 'Covering five wellness dimensions' },
   { icon: Layers, title: '0–100 Scale', desc: 'Sum of five dimension sub-scores' },
-  { icon: Award, title: '5 Dimensions', desc: 'Emotional, cognitive, social, physical, functioning' },
+  // Names must match DIMENSION_META (../../dimensions.ts) — the actual five dimensions.
+  { icon: Award, title: '5 Dimensions', desc: 'Emotional, Overall Wellbeing, Social, Stress Load, Daily Functioning' },
   { icon: BookOpen, title: '4 Instruments', desc: 'PHQ-4, WHO-5, UCLA-3, PSS-4' },
 ];
 
