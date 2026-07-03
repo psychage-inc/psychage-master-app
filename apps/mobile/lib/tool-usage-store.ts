@@ -31,18 +31,38 @@ export interface ToolUsageData {
   usage: Partial<Record<ToolId, number>>;
 }
 
+// Legacy 'psychage:' key with live user data — structurally validated on read
+// instead of SR-13-enveloped: wrapping it in a versioned envelope would orphan
+// every existing row. Anomalies (JSON.parse('"null"') → null, arrays, scalars,
+// non-object `usage`) reseed to the empty default so `data.usage[id] =` in
+// recordUse never throws (PR-006).
+function sanitize(parsed: unknown): ToolUsageData | null {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+  const e = parsed as { installedAt?: unknown; usage?: unknown };
+  if (typeof e.installedAt !== 'number') return null;
+  if (typeof e.usage !== 'object' || e.usage === null || Array.isArray(e.usage)) return null;
+
+  const usage: Partial<Record<ToolId, number>> = {};
+  for (const [id, at] of Object.entries(e.usage)) {
+    if (id in TOOLS && typeof at === 'number') usage[id as ToolId] = at;
+  }
+  return { installedAt: e.installedAt, usage };
+}
+
+// Read-only: getters must not write (PR-006 — the old seeding storage.set here
+// meant every read stamped storage). The fresh default is persisted on the
+// first explicit recordUse instead, which pins installedAt at first use.
 function getStoredData(): ToolUsageData {
   const raw = storage.get(STORAGE_KEY);
   if (raw) {
     try {
-      return JSON.parse(raw);
+      const validated = sanitize(JSON.parse(raw));
+      if (validated) return validated;
     } catch {
-      // fallback
+      // fall through to the fresh default
     }
   }
-  const newData: ToolUsageData = { installedAt: Date.now(), usage: {} };
-  storage.set(STORAGE_KEY, JSON.stringify(newData));
-  return newData;
+  return { installedAt: Date.now(), usage: {} };
 }
 
 export const toolUsageStore = {
