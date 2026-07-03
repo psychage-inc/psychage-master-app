@@ -27,11 +27,34 @@ export async function shareRecordFile(format: ExportFormat, content: string): Pr
   file.create();
   file.write(content);
 
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(file.uri, {
-      mimeType: meta.mimeType,
-      UTI: meta.uti,
-      dialogTitle: 'Export your Psychage record',
-    });
+  try {
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: meta.mimeType,
+        UTI: meta.uti,
+        dialogTitle: 'Export your Psychage record',
+      });
+    }
+  } finally {
+    // The share sheet has consumed the file (or declined it) — do not leave a
+    // plaintext copy of the record in the cache dir, where it would survive
+    // "delete my record" (the MMKV wipe never touches the filesystem; PR-014).
+    deleteExportedRecordFiles();
+  }
+}
+
+/**
+ * Best-effort removal of any exported record files from the cache dir. Also
+ * called by the wipe flows (S48 delete / privacy clear) so an export made
+ * before deletion cannot outlive it.
+ */
+export function deleteExportedRecordFiles(): void {
+  for (const meta of Object.values(META)) {
+    try {
+      const file = new File(Paths.cache, meta.filename);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort: a locked/missing file must never break the share or wipe flow.
+    }
   }
 }

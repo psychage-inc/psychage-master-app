@@ -8,11 +8,12 @@ import { ScreenShell } from '@/components/ui/ScreenShell';
 import { Text } from '@/components/ui/Text';
 import { CT4_SETTINGS } from '@/features/settings/copy';
 import { dailyRollupReader } from '@/lib/daily-rollup';
-import { getMomentStore, resetMomentStore } from '@/lib/moment-store';
+import { getMomentStore } from '@/lib/moment-store';
 import { storage } from '@/lib/adapters/storage';
 import { readAllEntries, toCSV, toJSON } from '@/lib/export/record-export';
-import { type ExportFormat, shareRecordFile } from '@/lib/export/share-record';
+import { deleteExportedRecordFiles, type ExportFormat, shareRecordFile } from '@/lib/export/share-record';
 import { setReadingTextSize } from '@/lib/persistence/reading-text-size';
+import { resetLiveState } from '@/lib/persistence/reset-live-state';
 import { setMomentSyncConsent } from '@/lib/persistence/sync-consent';
 import { wipeLocalData } from '@/lib/persistence/wipe-local-data';
 import { useSyncConsent } from '@/lib/use-sync-consent';
@@ -50,7 +51,8 @@ export default function PrivacyScreen() {
   // full account/remote cascade is the separate "Delete my record" flow (S47/S48).
   const onClear = () => {
     wipeLocalData(storage);
-    resetMomentStore();
+    deleteExportedRecordFiles();
+    resetLiveState();
     setMomentSyncConsent(false);
     setReadingTextSize('default');
     setConfirmingClear(false);

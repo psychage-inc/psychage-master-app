@@ -6,8 +6,9 @@ import { ScreenShell } from '@/components/ui/ScreenShell';
 import { Text } from '@/components/ui/Text';
 import { CT4_SETTINGS } from '@/features/settings/copy';
 import { storage } from '@/lib/adapters/storage';
-import { resetMomentStore } from '@/lib/moment-store';
+import { deleteExportedRecordFiles } from '@/lib/export/share-record';
 import { clearAuthSessionLocal, requestRemoteAccountDeletion } from '@/lib/persistence/account-deletion';
+import { resetLiveState } from '@/lib/persistence/reset-live-state';
 import { wipeLocalData } from '@/lib/persistence/wipe-local-data';
 
 // S48 Delete — confirm. The final confirm. On confirm the LOCAL/REMOTE boundary
@@ -17,8 +18,10 @@ import { wipeLocalData } from '@/lib/persistence/wipe-local-data';
 //      check_ins + personal-data tables + the auth.users row). Awaited, NOT
 //      fire-and-forget: we branch on the result so a failure is surfaced.
 //   2. wipeLocalData(storage) — HARD-IMMEDIATE local erase of all known keys + the
-//      `:quarantine:*` residue.
-//   3. resetMomentStore()    — drop the live singleton so reads reflect empty disk.
+//      `:quarantine:*` residue; deleteExportedRecordFiles() removes any exported
+//      record file from the cache dir (the MMKV wipe never touches the filesystem).
+//   3. resetLiveState()      — drop EVERY live store singleton + reactive cache so
+//      reads reflect the empty disk and no stale snapshot can re-persist (PR-013).
 //   4. on success: clearAuthSessionLocal() + replace the route (no back-button into
 //      a deleted state). On failure: surface that server data may remain — deletion
 //      must never SILENTLY half-complete (rules/auth.md §7). No undo, no soft-delete.
@@ -29,7 +32,8 @@ export default function DeleteConfirmScreen() {
     const remote = await requestRemoteAccountDeletion();
     // Local wipe always runs: the on-device record is erased hard-immediate.
     wipeLocalData(storage);
-    resetMomentStore();
+    deleteExportedRecordFiles();
+    resetLiveState();
     if (remote.ok) {
       // Account is gone server-side (or there was nothing to delete) — drop the
       // now-dead local session, then leave no route back into a deleted state.
