@@ -299,6 +299,8 @@ export const CT4_SLEEP = {
     cancel: 'Cancel',
     timeHint: 'HH:MM, 24-hour (e.g. 23:30)',
     invalid: 'Please check the highlighted fields — times use HH:MM (00:00–23:59).',
+    equalTimes:
+      'Getting into bed and out of bed show the same time — please set two different times.',
   },
 
   ratingScale: ['Poorly', 'Not great', 'Okay', 'Good', 'Very good'] as const,
