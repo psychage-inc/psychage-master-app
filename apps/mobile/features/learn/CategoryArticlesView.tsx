@@ -7,10 +7,8 @@ import { Pressable, View } from 'react-native';
 import { GlobalHeader } from '@/components/GlobalHeader';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Text } from '@/components/ui/Text';
-import { getCategoryBySlug } from '@psychage/shared/peaf';
-
 import { ArticleListCard } from '@/features/content/ArticleListCard';
-import { getLearnCategory } from '@/features/learn/categories';
+import { resolveCategoryArticleList } from '@/features/learn/category-resolution';
 import { type ArticleListItem, listArticlesByCategorySlugs } from '@/lib/articles';
 import { colors } from '@/lib/colors';
 
@@ -20,14 +18,9 @@ import { colors } from '@/lib/colors';
 // Supabase via TanStack Query — never placeholder. Empty/error states report the
 // absence; they never fabricate articles.
 export function CategoryArticlesView({ id }: { id: string }) {
-  // `id` is normally a curated topic id (anxiety | sleep | … | more). When it is not,
-  // treat it as a raw content category slug (article_categories.slug) so the "all
-  // categories" list can open ANY of the 30 categories — including the wellness ones
-  // that have no /conditions overview (P19). Curated ids and content slugs are disjoint.
-  const curated = getLearnCategory(id);
-  const contentCategory = curated ? undefined : getCategoryBySlug(id);
-  const slugs = curated?.slugs ?? (contentCategory ? [contentCategory.slug] : []);
-  const title = curated?.label ?? contentCategory?.name ?? 'Articles';
+  // Resolution chain (curated topic → peaf slug → Browse manifest slug) lives in
+  // category-resolution.ts (pure, Vitest-covered — PR-084).
+  const { slugs, title } = resolveCategoryArticleList(id);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['articles', 'category', id],
