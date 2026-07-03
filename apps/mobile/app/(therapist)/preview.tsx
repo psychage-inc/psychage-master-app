@@ -101,7 +101,12 @@ function buildToolSummaries(from: LocalCalendarDate, to: LocalCalendarDate): The
 // LOCAL store (the synced/account record is the gated sync layer — out of this wave).
 export default function PreviewScreen() {
   const params = useLocalSearchParams<{ days?: string }>();
-  const days = Number(typeof params.days === 'string' ? params.days : '7') || 7;
+  // Closed set only (the S40 range screen offers 7/14/30). `days` is a deep-linkable
+  // route param: an unbounded Number() here let `?days=999999999` drive a ~1e9-day
+  // enumerateDays loop inside first-render useMemo — a frozen JS thread on cold
+  // start (PR-056). Anything outside the set falls back to the 7-day default.
+  const parsed = Number(typeof params.days === 'string' ? params.days : '7');
+  const days = parsed === 14 || parsed === 30 ? parsed : 7;
 
   const data = useMemo(() => {
     const { from, to } = windowForDays(new Date(), days);
