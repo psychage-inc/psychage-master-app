@@ -168,6 +168,10 @@ export function SignUpForm({
                 autoCapitalize="none"
                 autoCorrect={false}
                 textContentType="newPassword"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (!submitting) handleSubmit();
+                }}
               />
             </View>
 
