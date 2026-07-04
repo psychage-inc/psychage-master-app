@@ -961,7 +961,7 @@ const CompareStep = React.memo(function CompareStep({ ids, onBack, onRemove }: {
           return (
             <View key={p.id} className="w-[180px] bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-3.5">
               <View style={{ backgroundColor: colorFor(p.id) }} className="w-[46px] h-[46px] rounded-full items-center justify-center self-center mb-2"><Text className="font-sans-bold text-white">{initials(name)}</Text></View>
-              <Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-base text-center">{name}</Text>
+              <Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-base text-center" numberOfLines={2} ellipsizeMode="tail">{name}</Text>
               <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-xs text-center mb-3">{p.credentials_suffix ?? ' '}</Text>
               <C l="Type" v={p.provider_type?.label ?? '—'} />
               <C l="License" v={[p.license_number, p.license_state].filter(Boolean).join(' · ') || '—'} />
