@@ -13,6 +13,8 @@ import {
   initialClarityState,
   isExitOnBack,
 } from './flow';
+import { useThemeColors } from '@/lib/use-theme-colors';
+
 import { CLARITY_QUESTION_COUNT, CLARITY_QUESTIONS } from './questions';
 import { getRecommendations, scoreClarity } from './scoring';
 import type { ClarityHistoryItem, ClarityResult } from './types';
@@ -76,6 +78,7 @@ export function ClarityFlow({
   hasHistory = false,
 }: ClarityFlowProps) {
   const [state, dispatch] = useReducer(clarityReducer, initialClarityState);
+  const tc = useThemeColors();
 
   const handleBack = () => {
     if (isExitOnBack(state)) onExit();
@@ -150,7 +153,7 @@ export function ClarityFlow({
     return (
       <ToolScreen scroll="none" onBack={handleBack}>
         <View className="flex-1 items-center justify-center px-8" accessibilityRole="progressbar">
-          <ActivityIndicator size="large" color="#1A9B8C" />
+          <ActivityIndicator size="large" color={tc.primary} />
           <Text variant="h1" className="mt-8 text-center">
             {CALCULATING_TITLE}
           </Text>
