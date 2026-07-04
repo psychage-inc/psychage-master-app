@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P,A,B,C,D,E,F,G,H] | batches_pending: [I,J,SW1,SW2] | findings: 33 (C:0 H:6 M:19 L:9) −1 rejected(S-BTN-02) −1 rejected(B-06), 7 flagged VERIFY-AT-REPAIR | repairs_done: 0 | next: batches I+J running. Inventory Status column updated in bulk before Phase 3.
+phase: 2 | batches_done: [P,A,B,C,D,E,F,G,H,I,J] | batches_pending: [SW1,SW2] | findings: 30 confirmed (C:0 H:5 M:18 L:7), 10 rejected after verification | repairs_done: 0 | next: sweeps SW1+SW2 running, then Phase 3 repair (order: S-MCS-01, J-01, C-01, E-01, I-01 → MEDIUMs shared-first → LOWs)
 
 ## 1. Hunt Map
 
@@ -404,6 +404,47 @@ Promoted to shared: G-02 → S-BTN-03 (a11y state, real).
 
 **Clean:** relationship landing, relationship-history, med-tracker (WebView skeleton/error/offline verified), wizard (auto-advance double-fire GUARDED via pending check) apart from G-03; mindmate intro/consent/crisis-card states verified sound.
 **OBS (G):** CrisisCard persists once shown (per spec); ConsentBanner dismiss vs consent state separation intentional.
+
+### Batch I — Find + Therapist (7/7 screens audited)
+
+#### I-01 — HIGH — compare card provider name unclamped in 180px column
+
+- CompareStep · apps/mobile/features/find/FindCareScreen.tsx:964 · text survival
+- Name Text in `w-[180px]` horizontal-scroll card has no numberOfLines; long real-directory names overflow card.
+- fix: numberOfLines={2} ellipsizeMode="tail" (mirror directory/CompareView.tsx:89 which already guards).
+
+#### I-02 — MEDIUM — compare card field values unclamped
+
+- CompareStep C helper · apps/mobile/features/find/FindCareScreen.tsx:931-932 · text survival
+- Type/License/NPI values unclamped in same 180px column. fix: numberOfLines={1} on value Text.
+
+#### I-03 — LOW — add-provider form fields no returnKey/dismiss
+
+- ProviderForm (via AuthTextField passthrough) · check: keyboard
+- fix: returnKeyType + onSubmitEditing/blurOnSubmit at ProviderForm call sites (AuthTextField forwards ...props; no primitive change).
+
+**Clean:** find (all wizard steps; searchProviders failure → error state + retry; offline overlay preserves step state), directory, provider/[id] (null-field handling honest), range, preview (PDF double-fire GUARDED via sharingRef; share failure surfaced).
+**OBS (I):** FindCareScreen is a 1054-line monolith (maintainability note, not defect); 180px compare column tight by design.
+
+### Batch J — Settings + Onboarding + misc (18/18 screens audited)
+
+Merged: J-03 → S-MCS-01 sighting (onboarding/moment host confirmed).
+Severity note: agent filed J-01 as CRITICAL ("data corruption") — orchestrator holds it at HIGH (deletion double-fire is a real destructive-flow defect; corruption claim unsubstantiated).
+
+#### J-01 — HIGH — delete-confirm double-fire on account deletion
+
+- DeleteConfirmScreen + DestructivePair · apps/mobile/app/settings/delete-confirm.tsx:28-72 · async/double-fire
+- `onConfirm` async with no re-entrancy guard; DestructivePair exposes no disabled/loading; rapid taps invoke requestRemoteAccountDeletion() in parallel + double route replace.
+- fix: `isDeleting` guard in screen (+ disabled support on DestructivePair if minimal).
+
+#### J-02 — MEDIUM — privacy export buttons no in-flight spinner
+
+- settings/privacy.tsx:108-113 · async feedback
+- `disabled={busy}` present (button dims) but no `isLoading={busy}` → no spinner while export runs.
+- fix: add isLoading={busy} to both export Buttons.
+
+**Clean:** settings hub, reminders, appearance, about, terms, privacy-policy, disclaimer, acknowledgments, make-it-yours, session-prep (busy guard verified), delete (pre-confirm), supporter, onboarding welcome/interests/moment (apart from S-MCS sightings), +not-found (recovery CTA present).
+**OBS (J):** onboarding swipe-back escape is intentional (anonymous-first, never walls).
 
 ## 4. Observations (design left alone)
 
