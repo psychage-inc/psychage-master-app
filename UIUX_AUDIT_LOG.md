@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 1 | batches_done: [] | batches_pending: [P,A,B,C,D,E,F,G,H,I,J,SW1,SW2] | findings: 0 (C:0 H:0 M:0 L:0) | repairs_done: 0 | next: complete hunt-map gap fill (chrome/RNTL columns), then launch batch P
+phase: 2 | batches_done: [] | batches_pending: [P,A,B,C,D,E,F,G,H,I,J,SW1,SW2] | findings: 0 (C:0 H:0 M:0 L:0) | repairs_done: 0 | next: batch P (shared primitives) running
 
 ## 1. Hunt Map
 
@@ -17,76 +17,83 @@ Chrome legend: SHELL=ScreenShell, TOOL=ToolScreen, NATIVE=native stack header, W
 
 | # | Route | Entry paths | Chrome | RNTL | Status |
 |---|-------|-------------|--------|------|--------|
-| 1 | `(tabs)/(today)/index` (S3 Today home) | tab landing; first-launch redirect target | TBD | TBD | — |
-| 2 | `(tabs)/(today)/history` (S7) | GlobalHeader History link; reflection.tsx:24; settings/index.tsx:116 | TBD | TBD | — |
-| 3 | `(tabs)/(today)/reflection` (S9) | HomeContainer reflection button | TBD | TBD | — |
-| 4 | `(tabs)/(today)/reflection-earlier` (S10) | reflection.tsx:23 | TBD | TBD | — |
-| 5 | `(tabs)/(learn)/learn` (S6) | tab landing | TBD | TBD | — |
-| 6 | `(tabs)/(learn)/learn/browse` | LearnView internal nav | TBD | TBD | — |
-| 7 | `(tabs)/(learn)/learn/search` | LearnView search button | TBD | TBD | — |
-| 8 | `(tabs)/(learn)/learn/[category]` | LearnView + BrowseView category taps | TBD | TBD | — |
-| 9 | `(tabs)/(learn)/library/index` (S23) | LearnView Library link | WEB | TBD | — |
-| 10 | `(tabs)/(learn)/library/search` (S24) | library browse search | WEB | TBD | — |
-| 11 | `(tabs)/(learn)/conditions/index` | LearnView Conditions link | TBD | TBD | — |
-| 12 | `(tabs)/(learn)/conditions/[slug]/index` | conditions accordion; LearnView; compass tile; nav.ts:39 openConditionGuide | TBD | TBD | — |
-| 13 | `(tabs)/(learn)/conditions/[slug]/articles` | ConditionGuideView "See all" | TBD | TBD | — |
-| 14 | `(tabs)/(learn)/saved` (T-006) | settings/index.tsx:116 | TBD | TBD | — |
-| 15 | `(tabs)/(compass)/compass` (S25) | tab landing | TBD | TBD | — |
-| 16 | `(tabs)/(compass)/tools/sleep` (S29) | compass.tsx:180 | TBD | TBD | — |
-| 17 | `(tabs)/(compass)/tools/mindmate` (S-MM) | compass.tsx:110; AiFab default route | TBD | TBD | — |
-| 18 | `(tabs)/(compass)/tools/relationship-health` | compass.tsx:157 | TBD | TBD | — |
-| 19 | `(tabs)/(compass)/tools/med-tracker` (S31) | compass card | WEB | TBD | — |
-| 20 | `(tabs)/(find)/find` (S28) | tab landing | TBD | TBD | — |
-| 21 | `(tabs)/(find)/find/directory` | find wizard step | TBD | TBD | — |
-| 22 | `(tabs)/(find)/find/compare` | find wizard step | TBD | TBD | — |
-| 23 | `(tabs)/(find)/find/provider/[id]` (S27) | find results card; navigator S18 rec | TBD | TBD | — |
-| 24 | `app/navigator` (S13–S18, 5+ internal screens) | compass.tsx:103 | CUSTOM | TBD | — |
-| 25 | `app/crisis` (S11) | CrisisPill (all chrome); compass.tsx:58; settings:156; clarity:69; relationship exits; onboarding/moment:39 | CUSTOM | TBD | — |
-| 26 | `app/crisis-region` (S12) | crisis.tsx:80 | CUSTOM | TBD | — |
-| 27 | `app/toolkit` (S19–S21) | compass.tsx:79,95; navigator rec | TOOL | TBD | — |
-| 28 | `app/insights` | compass.tsx:173 | TBD | TBD | — |
-| 29 | `app/article/[slug]` (S22) | openArticle() (nav.ts:30) from Learn/conditions/saved/search | TBD | TBD | — |
-| 30 | `app/tool/[id]` (legacy shim) | old deep links → redirect | CUSTOM | TBD | — |
-| 31 | `tools/clarity` (S32, multi-step flow) | compass.tsx:126 | TBD | TBD | — |
-| 32 | `tools/clarity-history` | clarity.tsx:71 | TBD | TBD | — |
-| 33 | `tools/navigator-history` | navigator.tsx:106 | TBD | TBD | — |
-| 34 | `tools/relationship-history` | relationship-health exits | TBD | TBD | — |
-| 35 | `(auth)/welcome` (S0) | first-launch redirect (today/index:51) | TBD | TBD | — |
-| 36 | `(auth)/why` | welcome secondary CTA | TBD | TBD | — |
-| 37 | `(auth)/sign-in` | welcome; onboarding/welcome:19; session-expired:20; settings:56; sign-up link | TBD | TBD | — |
-| 38 | `(auth)/sign-up` | welcome; why:10; sign-in:45 | TBD | TBD | — |
-| 39 | `(auth)/verify` | sign-in:32 (unconfirmed); welcome:54; sign-up:26; deep-link fallback | TBD | TBD | — |
-| 40 | `(auth)/verify-success` | deep link (auth/deep-link.ts:97) | TBD | TBD | — |
-| 41 | `(auth)/forgot-password` | sign-in:44 | TBD | TBD | — |
-| 42 | `(auth)/reset-password` | deep link (recovery token) | TBD | TBD | — |
-| 43 | `(auth)/session-expired` | root auth listener (>24h) | TBD | TBD | — |
-| 44 | `(auth)/sign-out` | settings/index.tsx:50 | TBD | TBD | — |
-| 45 | `(auth)/migrate` | auto-detect legacy web session | TBD | TBD | — |
-| 46 | `(therapist)/add-provider` (S38) | settings:132; find detail share | TBD | TBD | — |
-| 47 | `(therapist)/range` (S39) | add-provider:21 | TBD | TBD | — |
-| 48 | `(therapist)/preview` (S40) | range:38 | TBD | TBD | — |
-| 49 | `onboarding/welcome` (S1) | first-launch redirect; (auth)/welcome:32 | TBD | TBD | — |
-| 50 | `onboarding/interests` (S2) | onboarding/welcome:18 | TBD | TBD | — |
-| 51 | `onboarding/moment` (S4) | auto-open from S3 (checkin=1); interests completion | TBD | TBD | — |
-| 52 | `settings/index` (S44) | GlobalHeader avatar | NATIVE | TBD | — |
-| 53 | `settings/reminders` | settings:92 | NATIVE | TBD | — |
-| 54 | `settings/make-it-yours` (modal) | settings:38,80 | NATIVE | TBD | — |
-| 55 | `settings/appearance` | settings:75 | NATIVE | TBD | — |
-| 56 | `settings/about` | settings:144 | NATIVE | TBD | — |
-| 57 | `settings/terms` | about:48 | NATIVE | TBD | — |
-| 58 | `settings/privacy-policy` | about:53 | NATIVE | TBD | — |
-| 59 | `settings/disclaimer` | about:43 | NATIVE | TBD | — |
-| 60 | `settings/acknowledgments` | about:58 | NATIVE | TBD | — |
-| 61 | `settings/privacy` (PR B) | settings:104 | NATIVE | TBD | — |
-| 62 | `settings/delete` (PR B) | settings:63 | NATIVE | TBD | — |
-| 63 | `settings/delete-confirm` (modal) | delete:29 | NATIVE | TBD | — |
-| 64 | `settings/supporter` (PR C) | settings:149 | NATIVE | TBD | — |
-| 65 | `settings/session-prep` | settings:123 | NATIVE | TBD | — |
-| 66 | `+not-found` | any unmatched route | CUSTOM | TBD | — |
-| 67 | `dev-icons` (__DEV__) | manual only — INVENTORY ONLY, no fixes | — | — | n/a |
-| 68 | `dev-navigator` (__DEV__) | manual only — INVENTORY ONLY, no fixes | — | — | n/a |
+| 1 | `(tabs)/(today)/index` (S3 Today home) | tab landing; first-launch redirect target | SHELL | today-route.test.tsx | — |
+| 2 | `(tabs)/(today)/history` (S7) | GlobalHeader History link; reflection.tsx:24; settings/index.tsx:116 | CUSTOM | none | — |
+| 3 | `(tabs)/(today)/reflection` (S9) | HomeContainer reflection button | CUSTOM | ReflectionView.test.tsx | — |
+| 4 | `(tabs)/(today)/reflection-earlier` (S10) | reflection.tsx:23 | CUSTOM | none | — |
+| 5 | `(tabs)/(learn)/learn` (S6) | tab landing | SHELL | learn-screen.test.tsx | — |
+| 6 | `(tabs)/(learn)/learn/browse` | LearnView internal nav | SHELL | none | — |
+| 7 | `(tabs)/(learn)/learn/search` | LearnView search button | SHELL | search-view.test.tsx | — |
+| 8 | `(tabs)/(learn)/learn/[category]` | LearnView + BrowseView category taps | SHELL | none | — |
+| 9 | `(tabs)/(learn)/library/index` (S23) | LearnView Library link | WEB | none | — |
+| 10 | `(tabs)/(learn)/library/search` (S24) | library browse search | WEB | none | — |
+| 11 | `(tabs)/(learn)/conditions/index` | LearnView Conditions link | SHELL | ConditionsLibraryView.test.tsx | — |
+| 12 | `(tabs)/(learn)/conditions/[slug]/index` | conditions accordion; LearnView; compass tile; nav.ts:39 | SHELL | ConditionDetailView.test.tsx | — |
+| 13 | `(tabs)/(learn)/conditions/[slug]/articles` | ConditionGuideView "See all" | SHELL | ConditionArticlesView.test.tsx | — |
+| 14 | `(tabs)/(learn)/saved` (T-006) | settings/index.tsx:116 | SHELL | bookmarks-saved-list.test.tsx | — |
+| 15 | `(tabs)/(compass)/compass` (S25) | tab landing | SHELL | compass-screen.test.tsx | — |
+| 16 | `(tabs)/(compass)/tools/sleep` (S29) | compass.tsx:180 | CUSTOM | SleepArchitectView.test.tsx | — |
+| 17 | `(tabs)/(compass)/tools/mindmate` (S-MM) | compass.tsx:110; AiFab default route | CUSTOM | MindMateView.test.tsx | — |
+| 18 | `(tabs)/(compass)/tools/relationship-health` | compass.tsx:157 | CUSTOM | none | — |
+| 19 | `(tabs)/(compass)/tools/med-tracker` (S31) | compass card | WEB | none | — |
+| 20 | `(tabs)/(find)/find` (S28) | tab landing | SHELL | find-screen.test.tsx | — |
+| 21 | `(tabs)/(find)/find/directory` | find wizard step | SHELL | none | — |
+| 22 | `(tabs)/(find)/find/compare` | find wizard step | SHELL | compare-view.test.tsx | — |
+| 23 | `(tabs)/(find)/find/provider/[id]` (S27) | find results card; navigator S18 rec | SHELL | provider-detail-link.test.tsx | — |
+| 24 | `app/navigator` (6 internal screens) | compass.tsx:103 | CUSTOM | NavigatorFlow.test.tsx | — |
+| 25 | `app/crisis` (S11) | CrisisPill (all chrome); compass.tsx:58; settings:156; clarity:69; relationship exits; onboarding/moment:39 | CUSTOM | CrisisView.test.tsx | — |
+| 26 | `app/crisis-region` (S12) | crisis.tsx:80 | CUSTOM | RegionPicker.test.tsx | — |
+| 27 | `app/toolkit` (S19–S21) | compass.tsx:79,95; navigator rec | CUSTOM | ExerciseFlow.test.tsx | — |
+| 28 | `app/insights` | compass.tsx:173 | CUSTOM | insights-view.test.tsx | — |
+| 29 | `app/article/[slug]` (S22) | openArticle() (nav.ts:30) from Learn/conditions/saved/search | SHELL | ArticleReader.test.tsx | — |
+| 30 | `app/tool/[id]` (legacy shim) | old deep links → redirect | TOOL | none | — |
+| 31 | `tools/clarity` (S32, multi-step flow) | compass.tsx:126 | CUSTOM | ClarityFlow.test.tsx | — |
+| 32 | `tools/clarity-history` | clarity.tsx:71 | TOOL | none | — |
+| 33 | `tools/navigator-history` | navigator.tsx:106 | TOOL | none | — |
+| 34 | `tools/relationship-history` | relationship-health exits | CUSTOM | none | — |
+| 35 | `(auth)/welcome` (S0) | first-launch redirect (today/index:51) | SHELL | auth-screens.test.tsx | — |
+| 36 | `(auth)/why` | welcome secondary CTA | SHELL | auth-screens.test.tsx | — |
+| 37 | `(auth)/sign-in` | welcome; onboarding/welcome:19; session-expired:20; settings:56; sign-up link | SHELL | sign-in-screen.test.tsx | — |
+| 38 | `(auth)/sign-up` | welcome; why:10; sign-in:45 | SHELL | auth-screens.test.tsx | — |
+| 39 | `(auth)/verify` | sign-in:32 (unconfirmed); welcome:54; sign-up:26; deep-link fallback | SHELL | verify-screen.test.tsx | — |
+| 40 | `(auth)/verify-success` | deep link (auth/deep-link.ts:97) | SHELL | none | — |
+| 41 | `(auth)/forgot-password` | sign-in:44 | SHELL | auth-screens.test.tsx | — |
+| 42 | `(auth)/reset-password` | deep link (recovery token) | SHELL | none | — |
+| 43 | `(auth)/session-expired` | root auth listener (>24h) | SHELL | none | — |
+| 44 | `(auth)/sign-out` | settings/index.tsx:50 | SHELL | auth-screens.test.tsx | — |
+| 45 | `(auth)/migrate` | auto-detect legacy web session | SHELL | migrate-screen.test.tsx | — |
+| 46 | `(therapist)/add-provider` (S38) | settings:132; find detail share | SHELL | therapist-screens.test.tsx | — |
+| 47 | `(therapist)/range` (S39) | add-provider:21 | SHELL | therapist-screens.test.tsx | — |
+| 48 | `(therapist)/preview` (S40) | range:38 | SHELL | none | — |
+| 49 | `onboarding/welcome` (S1) | first-launch redirect; (auth)/welcome:32 | CUSTOM | WelcomeView.test.tsx | — |
+| 50 | `onboarding/interests` (S2) | onboarding/welcome:18 | CUSTOM | InterestPickView.test.tsx | — |
+| 51 | `onboarding/moment` (S4) | auto-open from S3 (checkin=1); interests completion | CUSTOM | OnboardingMomentCapture.test.tsx | — |
+| 52 | `settings/index` (S44) | GlobalHeader avatar | SHELL | settings-hub.test.tsx | — |
+| 53 | `settings/reminders` | settings:92 | SHELL | reminders-screen.test.tsx | — |
+| 54 | `settings/make-it-yours` (modal) | settings:38,80 | SHELL | make-it-yours.test.tsx | — |
+| 55 | `settings/appearance` | settings:75 | SHELL | none | — |
+| 56 | `settings/about` | settings:144 | SHELL | none | — |
+| 57 | `settings/terms` | about:48 | SHELL | none | — |
+| 58 | `settings/privacy-policy` | about:53 | SHELL | none | — |
+| 59 | `settings/disclaimer` | about:43 | SHELL | none | — |
+| 60 | `settings/acknowledgments` | about:58 | SHELL | none | — |
+| 61 | `settings/privacy` (PR B) | settings:104 | SHELL | privacy-screen.test.tsx | — |
+| 62 | `settings/delete` (PR B) | settings:63 | SHELL | delete-confirm.test.tsx | — |
+| 63 | `settings/delete-confirm` (modal) | delete:29 | SHELL | delete-confirm.test.tsx | — |
+| 64 | `settings/supporter` (PR C) | settings:149 | SHELL | supporter-screen.test.tsx | — |
+| 65 | `settings/session-prep` | settings:123 | SHELL | session-prep-screen.test.tsx | — |
+| 66 | `+not-found` | any unmatched route | NATIVE | none | — |
+| 67 | `dev-icons` (`__DEV__`) | manual only — INVENTORY ONLY, no fixes | — | — | n/a |
+| 68 | `dev-navigator` (`__DEV__`) | manual only — INVENTORY ONLY, no fixes | — | — | n/a |
 
-Internal flow screens (audited within their host route's batch): navigator welcome→domains→symptoms→detail→processing→results (~6); clarity multi-step flow + results dashboard (~5); sleep-architect 4-tab flow (~4); toolkit breathing/grounding/body-scan (~3); relationship wizard (~3); mindmate intro/chat (~2); moment capture sheet (hosted on Today + Compass).
+Internal flow screens (audited in host route's batch):
+- Navigator (batch H): `features/navigator/screens/` — WelcomeScreen, SymptomSelectionScreen, DomainSelectionScreen, DetailScreen, ProcessingScreen, ResultsScreen
+- Clarity (F): `features/clarity/ClarityFlow.tsx` — welcome / questions / results / retake / history states
+- Sleep (F): `features/sleep-architect/` — SleepArchitectView, SleepHome, SleepDashboard, SleepDiary, SleepTools, SleepInsights
+- Toolkit (E): `features/toolkit/ExerciseFlow.tsx` — breathing / grounding / body_scan variants
+- Relationship (G): `features/relationship-health/` — RelationshipFlow, LandingView, WizardView, ResultsView, HistoryView
+- MindMate (G): `features/mindmate/components/MindMateView.tsx` — intro / chat states
+- Moment capture (B): `components/moments/MomentCaptureSheet.tsx` — hosted on Today + Compass
 
 ### 1.2 Shared Component Inventory (top primitives)
 
