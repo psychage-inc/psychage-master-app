@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P,A,B,C,D] | batches_pending: [E,F,G,H,I,J,SW1,SW2] | findings: 20 (C:0 H:3 M:13 L:4) +1 rejected | repairs_done: 0 | next: batches E+F running. Inventory Status column updated in bulk before Phase 3.
+phase: 2 | batches_done: [P,A,B,C,D,E,F] | batches_pending: [G,H,I,J,SW1,SW2] | findings: 31 (C:0 H:5 M:18 L:8) +1 rejected, 6 flagged VERIFY-AT-REPAIR | repairs_done: 0 | next: batches G+H running. Inventory Status column updated in bulk before Phase 3.
 
 ## 1. Hunt Map
 
@@ -178,6 +178,22 @@ Internal flow screens (audited in host route's batch):
 - fix: `isSaving` state → `isLoading={isSaving}`, `disabled={valence === null || isSaving}`.
 - sites: hosted from Today (S3), Compass, onboarding/moment
 
+### S-CHIP-01 — MEDIUM (VERIFY-AT-REPAIR) — ChipXL double-tap double-answer
+
+- component: ChipXL · file: apps/mobile/features/navigator/components/ChipXL.tsx:21 · check: touch/double-fire
+- defect: `onPress={() => onAnswer(o.value)}` unguarded; rapid double-tap before re-render can dispatch ANSWER twice → advances two steps with one intended answer.
+- impact: Assessment answers desync from questions (clarity + navigator flows).
+- fix: one-shot guard per step (ref or disabled-after-press until step index changes). Verify reducer semantics first.
+- sites: navigator symptom flows + clarity questions
+
+### S-BTN-02 — MEDIUM (VERIFY-AT-REPAIR) — Button may not block onPress while isLoading
+
+- component: Button · file: apps/mobile/components/ui/Button.tsx:105-108 · check: touch/double-fire
+- defect: Pressable disabled only via `disabled` prop; if isLoading doesn't also disable, repeated presses during in-flight action re-fire onPress.
+- impact: Async CTAs (exercise begin, exports, saves) can double-fire.
+- fix (if confirmed): treat isLoading as disabled for press handling. Verify actual prop wiring first.
+- sites: all 52 Button usages
+
 ### S-MCS-02 — MEDIUM — MomentCaptureSheet note input hidden by keyboard
 
 - component: MomentCaptureSheet · file: apps/mobile/components/moments/MomentCaptureSheet.tsx:111,125 · check: keyboard
@@ -284,6 +300,71 @@ Promoted to shared tier: S-MCS-01 (save double-fire), S-MCS-02 (keyboard over no
 
 **Clean:** conditions/index, conditions/[slug]/articles, conditions/[slug] (category branch), library, library/search; article/[slug] apart from D-02. Notable good: TTS stops on unmount; PEAF blocks degrade gracefully; hero images reserve aspect ratio.
 **OBS (D):** ArticleListCard/RelatedArticleCard use inline router.push instead of openArticle() helper — functionally correct; consistency note only.
+
+### Batch E — Compass hub + toolkit + insights (4/4 routes audited)
+
+Promoted/merged to shared: E-02 → S-TOOL-01 sighting; E-03 → S-BTN-02 (new, verify).
+
+#### E-01 — HIGH — DeepDiveCard title+feature unclamped at fontScale
+
+- DeepDiveCard · apps/mobile/features/compass/CompassTile.tsx:173-176 · text survival
+- No numberOfLines on title or feature; overflows tile bounds at fontScale 1.3.
+- fix: numberOfLines (match HeroTile/SmallTile title pattern).
+
+#### E-04 — LOW — compass HeroTile/SmallTile feature text unclamped
+
+- CompassTile.tsx:81-83,113-115 · text survival
+- feature subtitle text-xs without numberOfLines; wraps/overflows at fontScale 1.3 on 360pt.
+- fix: numberOfLines={1}. (Fix together with E-01 — same file.)
+
+**Clean:** insights (12/12 — no "trend"/"score" wording, empty states good), tool/[id] (unknown id → clean fallback), toolkit apart from shared sightings, compass apart from E-01/E-04.
+**OBS (E):** reduced-motion breathing conveys pace via phase words + haptics (compliant); back mid-exercise routes to wind-down deliberately; insights has no energy section (stale priming — fine).
+
+### Batch F — Clarity + Sleep (all flow states audited)
+
+Merged: F-02 → duplicate of S-BTN-01 (dropped); F-13 merged into F-03; F-01 → S-CHIP-01 (shared, verify).
+Downgraded to observations: F-07 (speculative low-end spring jank), F-08 (empty-copy differentiation = copy design), F-09 (history rows view-only = design choice).
+
+#### F-04 — HIGH (VERIFY-AT-REPAIR) — clarity crisis actions lack failure feedback
+
+- CrisisUrgentBanner · apps/mobile/features/clarity/components/CrisisUrgentBanner.tsx:50-102 · async feedback/navigation
+- tel:/sms: Linking calls and /crisis push have no failure handling; on devices without telephony the tap silently does nothing.
+- CAUTION: crisis surface — copy frozen; fix must be minimal (e.g. Linking.canOpenURL fallback → route to /crisis) and reuse existing copy. Verify actual Linking usage first.
+
+#### F-03 — MEDIUM — sleep PDF export button no in-flight state
+
+- SleepExportView · apps/mobile/features/sleep-architect/export/SleepExportView.tsx:97-105 · async feedback
+- Generate button lacks isLoading; route-level `exporting` guard exists but no UI signal → users re-tap thinking press missed.
+- fix: thread exporting state down → `isLoading` on Button.
+
+#### F-05 — MEDIUM (VERIFY-AT-REPAIR) — clarity question prompt overflow at fontScale 1.3
+
+- ClarityFlow.tsx:239-240 · small screen/large font
+- Claim: h1 prompt overflows. SUSPECT: RN Text wraps by default in column layouts. Verify container direction before any fix; likely reject.
+
+#### F-10 — MEDIUM — sleep chronotype quiz save is silent
+
+- SleepArchitectView.tsx:98-106 · async feedback
+- saveSettings + reload with no success signal; user misses that targets went active.
+- fix: reuse existing confirmation pattern from sleep feature (no new clinical copy; sleep copy layer if string needed).
+
+#### F-06 — LOW — sleep diary row crowding at fontScale 1.3
+
+- SleepDiary.tsx:56 · small screen/large font
+- flex-row date/quality vs duration without shrink bounds. fix: flex-shrink/minWidth guards.
+
+#### F-11 — LOW (VERIFY-AT-REPAIR) — ConsultationGuidance Text-as-button feedback
+
+- ConsultationGuidance.tsx:163-186 · touch/a11y
+- Text with accessibilityRole="button" + opacity press state; verify pressed feedback adequacy vs AnimatedPressable pattern. Possibly OBSERVATION.
+
+#### F-12 — LOW (VERIFY-AT-REPAIR) — ChipXL label overflow claim
+
+- ChipXL.tsx:21-27 · small screen/large font
+- Same suspicion as F-05 (Text wraps naturally). Verify; likely reject.
+
+**Clean:** clarity intro/calculating/results-dimensions/results-guide/history route, sleep home/diary/tools/wind-down apart from listed items. SR-1 sleep no-gauge CONFIRMED; clarity gauge sanctioned (web-parity override); crisis interstitial reachable, returns to q4.
+**OBS (F):** mid-assessment state loss on unmount is BY DESIGN (SR-4 client-only, no persistence); diary time validation solid; TierBadge custom sizing not a Badge instance.
 
 ## 4. Observations (design left alone)
 
