@@ -179,7 +179,14 @@ Internal flow screens (audited in host route's batch):
 - fix: `isSaving` state → `isLoading={isSaving}`, `disabled={valence === null || isSaving}`.
 - sites: hosted from Today (S3), Compass, onboarding/moment
 
-### S-CHIP-01 — MEDIUM (VERIFY-AT-REPAIR) — ChipXL double-tap double-answer
+### S-CHIP-01 — REJECTED AT REPAIR — ChipXL double-tap double-answer
+
+Two fix attempts, both reverted with reasoning:
+1. Time-window debounce in ChipXL — broke legitimate fast consecutive answers (same component instance re-used across questions with identical Likert labels; RNTL suite failed 4 tests, correctly).
+2. Same-commit dispatch guard in ClarityFlow — analysis showed the guarded race is unreachable: React flushes discrete press events synchronously, so a second tap always processes after commit against the NEXT question's chip (new closure, new state). The remaining "double-tap advances past a question the user never read" scenario spans commits and is distinguishable from intentional fast answering only by timing heuristics, which penalize fast users. Screen visibly changes between the taps and BACK recovers fully; navigator's safety step is reducer-step-guarded and immune.
+→ Not a code defect fixable without UX regressions. RESIDUAL_RISK: real-device double-tap feel unverifiable here.
+
+### (superseded record)
 
 - component: ChipXL · file: apps/mobile/features/navigator/components/ChipXL.tsx:21 · check: touch/double-fire
 - defect: `onPress={() => onAnswer(o.value)}` unguarded; rapid double-tap before re-render can dispatch ANSWER twice → advances two steps with one intended answer.
