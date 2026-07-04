@@ -42,6 +42,7 @@ export function QuestionCard({ question, value, onSelect }: QuestionCardProps) {
                   ? 'border-primary bg-primary/10 dark:border-primary-dark'
                   : 'border-border bg-surface dark:border-border-dark dark:bg-surface-dark',
               ].join(' ')}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
             >
               <View
                 className={[
