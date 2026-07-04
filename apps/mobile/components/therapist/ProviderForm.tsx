@@ -64,6 +64,7 @@ export function ProviderForm({ onSubmit, initialName = '', initialContact = '' }
             }}
             errorText={nameError}
             autoCapitalize="words"
+            returnKeyType="next"
           />
           <AuthTextField
             label={THERAPIST_COPY.providerContactLabel}
@@ -71,6 +72,8 @@ export function ProviderForm({ onSubmit, initialName = '', initialContact = '' }
             onChangeText={setContact}
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
           />
         </View>
         <Button variant="primary" onPress={handleSubmit}>
