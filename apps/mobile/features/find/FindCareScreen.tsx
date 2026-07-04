@@ -28,6 +28,7 @@ import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, TextInput
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, LinearTransition, SlideInDown, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
+import { useReducedMotion } from '@/lib/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderAvatar } from '@/components/HeaderAvatar';
@@ -148,8 +149,16 @@ function Tap({ onPress, children, className, style, accessibilityLabel, accessib
   );
 }
 function Skeleton() {
+  const reduced = useReducedMotion();
   const o = useSharedValue(0.4);
-  useEffect(() => { o.value = withRepeat(withTiming(1, { duration: 800 }), -1, true); }, [o]);
+  // Static mid-opacity when reduce-motion is on (mirrors components/ui/Skeleton).
+  useEffect(() => {
+    if (reduced) {
+      o.value = 0.4;
+      return;
+    }
+    o.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
+  }, [o, reduced]);
   const a = useAnimatedStyle(() => ({ opacity: o.value }));
   return (
     <Animated.View style={a} className="flex-row gap-3 bg-surface dark:bg-surface-dark border border-border/50 dark:border-border-dark/50 rounded-[20px] mb-4 p-[15px] shadow-sm dark:shadow-none">
