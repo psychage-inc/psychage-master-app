@@ -46,17 +46,7 @@ export function ClarityHistoryView({ snapshots, onStartNew }: ClarityHistoryView
         ) : (
           snapshots.map((s) => (
             <Card key={s.id} className="flex-row items-center gap-4">
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: '#9ca3af55',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <View className="h-12 w-12 items-center justify-center rounded-full border border-border dark:border-border-dark">
                 <Text variant="label">{s.composite}</Text>
               </View>
               <View className="flex-1">
