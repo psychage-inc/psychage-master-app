@@ -171,10 +171,16 @@ export function DeepDiveCard({ title, feature, icon: Icon, onPress, testID }: Ti
       </View>
       <Icon size={24} color={TEAL} strokeWidth={1.75} />
       <View className="mt-10">
-        <Text className="font-sans-medium text-base text-text-primary dark:text-text-primary-dark">
+        <Text
+          className="font-sans-medium text-base text-text-primary dark:text-text-primary-dark"
+          numberOfLines={2}
+        >
           {title}
         </Text>
-        <Text className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark">
+        <Text
+          className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark"
+          numberOfLines={1}
+        >
           {feature}
         </Text>
       </View>
