@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useRef } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { DestructivePair } from '@/components/settings/DestructivePair';
@@ -27,8 +28,15 @@ import { wipeLocalData } from '@/lib/persistence/wipe-local-data';
 //      must never SILENTLY half-complete (rules/auth.md §7). No undo, no soft-delete.
 export default function DeleteConfirmScreen() {
   const t = CT4_SETTINGS.deleteConfirm;
+  // Re-entrancy guard: the confirm handler awaits a network cascade, and the
+  // destructive button stays pressable during that window — a rapid second tap
+  // must not start a parallel deletion (double RPC, double wipe, double replace).
+  // Reset only on the failure branch so the surfaced retry path still works.
+  const deleting = useRef(false);
 
   const onConfirm = async () => {
+    if (deleting.current) return;
+    deleting.current = true;
     const remote = await requestRemoteAccountDeletion();
     // Local wipe always runs: the on-device record is erased hard-immediate.
     wipeLocalData(storage);
@@ -43,6 +51,7 @@ export default function DeleteConfirmScreen() {
     }
     // Server cascade FAILED. On-device data is gone, but tell the user their server
     // data may still exist. Keep the session so a later attempt can retry.
+    deleting.current = false;
     Alert.alert(t.serverFailTitle, t.serverFailBody, [
       { text: t.serverFailAck, onPress: () => router.replace('/') },
     ]);
