@@ -8,7 +8,7 @@ import {
 import { X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 import { ChipGroup } from '@/components/moments/ChipGroup';
@@ -111,6 +111,9 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
         className="flex-1"
         onPress={onClose}
       />
+      {/* Keeps the optional-note input visible above the keyboard (ToolScreen's
+          keyboardAvoiding pattern; Android relies on adjustResize). */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Animated.View
         entering={reduced ? undefined : SlideInDown.springify().damping(20).stiffness(200).mass(0.8)}
         exiting={reduced ? undefined : SlideOutDown.springify().damping(20).stiffness(200).mass(0.8)}
@@ -205,6 +208,7 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
           {MOMENTS_COPY.privacyNote}
         </Text>
       </Animated.View>
+      </KeyboardAvoidingView>
     </Animated.View>
   );
 }
