@@ -180,7 +180,7 @@ export function SignUpForm({
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: accepted }}
                 accessibilityLabel={`${AUTH_COPY.termsPrefix}${AUTH_COPY.termsLink}${AUTH_COPY.termsAnd}${AUTH_COPY.privacyLink}`}
-                hitSlop={6}
+                hitSlop={10}
                 onPress={() => {
                   setAccepted((value) => !value);
                   setTermsError(false);
