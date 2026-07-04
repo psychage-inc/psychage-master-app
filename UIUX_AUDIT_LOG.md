@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P,A,B,C,D,E,F] | batches_pending: [G,H,I,J,SW1,SW2] | findings: 31 (C:0 H:5 M:18 L:8) +1 rejected, 6 flagged VERIFY-AT-REPAIR | repairs_done: 0 | next: batches G+H running. Inventory Status column updated in bulk before Phase 3.
+phase: 2 | batches_done: [P,A,B,C,D,E,F,G,H] | batches_pending: [I,J,SW1,SW2] | findings: 33 (C:0 H:6 M:19 L:9) −1 rejected(S-BTN-02) −1 rejected(B-06), 7 flagged VERIFY-AT-REPAIR | repairs_done: 0 | next: batches I+J running. Inventory Status column updated in bulk before Phase 3.
 
 ## 1. Hunt Map
 
@@ -186,13 +186,17 @@ Internal flow screens (audited in host route's batch):
 - fix: one-shot guard per step (ref or disabled-after-press until step index changes). Verify reducer semantics first.
 - sites: navigator symptom flows + clarity questions
 
-### S-BTN-02 — MEDIUM (VERIFY-AT-REPAIR) — Button may not block onPress while isLoading
+### S-BTN-03 — MEDIUM — Button accessibilityState ignores isLoading
 
-- component: Button · file: apps/mobile/components/ui/Button.tsx:105-108 · check: touch/double-fire
-- defect: Pressable disabled only via `disabled` prop; if isLoading doesn't also disable, repeated presses during in-flight action re-fire onPress.
-- impact: Async CTAs (exercise begin, exports, saves) can double-fire.
-- fix (if confirmed): treat isLoading as disabled for press handling. Verify actual prop wiring first.
-- sites: all 52 Button usages
+- component: Button · file: apps/mobile/components/ui/Button.tsx:100 · check: a11y
+- defect: `accessibilityState={{ disabled: !!disabled }}` — SR announces enabled while isLoading blocks presses (line 87 guards `disabled || isLoading`).
+- impact: VoiceOver/TalkBack users told button is active when it isn't.
+- fix: `disabled: !!disabled || !!isLoading`, plus `busy: !!isLoading`.
+- sites: all 52 Button usages (a11y-only change, zero visual/behavioral risk)
+
+### S-BTN-02 — REJECTED — Button onPress during isLoading
+
+- Batch E suspected onPress fires during isLoading. Batch H verified FALSE: Button.tsx:87 guards `disabled || isLoading` on the Pressable. No defect.
 
 ### S-MCS-02 — MEDIUM — MomentCaptureSheet note input hidden by keyboard
 
@@ -365,6 +369,29 @@ Downgraded to observations: F-07 (speculative low-end spring jank), F-08 (empty-
 
 **Clean:** clarity intro/calculating/results-dimensions/results-guide/history route, sleep home/diary/tools/wind-down apart from listed items. SR-1 sleep no-gauge CONFIRMED; clarity gauge sanctioned (web-parity override); crisis interstitial reachable, returns to q4.
 **OBS (F):** mid-assessment state loss on unmount is BY DESIGN (SR-4 client-only, no persistence); diary time validation solid; TierBadge custom sizing not a Badge instance.
+
+### Batch H — Navigator + Crisis (ALL screens audited: navigator entry + 6 internal screens + HaltView, navigator-history, crisis, crisis-region — ZERO defects)
+
+All 12 checks pass on every surface. Verified: SR-1 ConfidenceBar clamps display to [8,75]% (ConfidenceBar.tsx:31-32); SR-2 crisis ungated everywhere, CRISIS-tag halt path calm, no haptics on crisis surfaces (EmergencyButton haptic.affirm = sanctioned essential feedback); SR-4 navigator state in-memory only, crisis runs never persisted; tel:/sms: intents DEFENSIVE (`Linking.openURL().catch()`) in EmergencyButton + CrisisCallRow; processing screen ~2.25s (no flash); touch targets 56–72pt; region picker FlashList.
+Cross-verification bonuses: **S-BTN-02 rejected** (Button.tsx:87 `disabled || isLoading`); **S-CHIP-01 disputed** (H: ChipXL = single-press navigation button, not multi-fire risk; F said double-answer possible — orchestrator resolves by direct read at repair).
+
+### Batch G — MindMate + Relationship + MedTracker (4/4 routes audited)
+
+Promoted to shared: G-02 → S-BTN-03 (a11y state, real).
+
+#### G-01 — HIGH (VERIFY-AT-REPAIR, likely reject) — mindmate chat auto-scroll claim
+
+- MessageList · apps/mobile/features/mindmate/components/MessageList.tsx:11 · scroll
+- Agent claims no auto-scroll to new messages. SUSPECT: scaleY-flip + reversed data = standard inverted-chat pattern where offset 0 IS the visual bottom → new messages auto-appear and scrolled-up users aren't yanked. Direct read at repair; expected reject.
+
+#### G-03 — LOW — relationship wizard options lack pressed feedback
+
+- QuestionCard · apps/mobile/features/relationship-health/components/QuestionCard.tsx:30-44 · touch/consistency
+- Raw Pressable, no opacity/scale pressed state (haptic fires, visual doesn't). Everything else in app gives visual press feedback.
+- fix: AnimatedPressable wrapper or pressed-state style, matching existing wizard idiom.
+
+**Clean:** relationship landing, relationship-history, med-tracker (WebView skeleton/error/offline verified), wizard (auto-advance double-fire GUARDED via pending check) apart from G-03; mindmate intro/consent/crisis-card states verified sound.
+**OBS (G):** CrisisCard persists once shown (per spec); ConsentBanner dismiss vs consent state separation intentional.
 
 ## 4. Observations (design left alone)
 
