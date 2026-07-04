@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 3 | batches_done: ALL (P,A–J,SW1,SW2) | findings: 35 confirmed (H:5 M:21 L:9), 19 raw claims rejected/merged | repairs_done: 0 | next: repair HIGHs in order S-MCS-01 → J-01 → C-01 → E-01 → I-01, then shared MEDIUMs (S-BTN-01, S-BTN-03, S-TOOL-01, S-BDG-01, S-MCS-02, S-CHIP-01), then screen MEDIUMs (A-01..05, B-02/03/04, F-03, F-10, I-02, J-02, SW2-04/05/06), then LOWs (S-TILE-01, A-06, B-08, E-04, F-06, G-03, I-03, SW1-05, SW2-01)
+phase: 4 | repairs_done: 28 fixed (one commit each) + 7 re-triaged rejected at repair (see §5) | next: full green gate (typecheck+lint+vitest+chunked jest) + fresh-agent re-audit of modified surfaces + /mobile-design-audit, then UIUX_REPORT.md
 
 ## 1. Hunt Map
 
@@ -511,5 +511,12 @@ Orchestrator triage — 8 of 9 rejected:
 
 ## 5. Repair Ledger
 
-| ID | Commit | Files | Verify (types/lint/tests) | Tags |
-|---|---|---|---|---|
+**Fixed (28, one commit each; every commit passed biome + tsc + targeted jest where tests exist):**
+S-MCS-01 (capture-sheet save guard) · S-MCS-02 (capture-sheet KeyboardAvoidingView) · J-01 (delete-confirm re-entrancy ref) · C-01 (themed back chevron) · E-01 + E-04 (compass tile clamps) · I-01 + I-02 (compare card clamps) · S-BTN-01 (Button reduced-motion gates ×4 sites) · S-BTN-03 (Button a11y disabled/busy) · S-TOOL-01 (ToolScreen header clamps) · S-BDG-01 (Badge clamp) · A-01/A-02 (keyboard submit sign-in/sign-up) · A-03/A-04/A-05 (auth hit targets) · F-10 (chronotype save confirmation, CT4_SLEEP.targetsSaved) · F-06 (diary row flex bound) · J-02 (privacy export spinners) · SW2-04/05/06 (clarity dark tokens) · S-TILE-01 (ClarityTile clamp) · G-03 (wizard pressed state) · I-03 (provider form return keys) · SW1-05 (openArticle centralization) · SW2-01 (AnimatedInput theming, latent).
+
+**Re-triaged REJECTED during repair (evidence in commits/log):**
+- S-CHIP-01 — two fix attempts reverted; race unreachable under discrete-event sync flush (see §2 record).
+- F-03 — export view closes immediately on generate (`setEditing(null)`), which IS the feedback; route guard blocks double-fire.
+- B-02 / B-03 / A-06 — Text in column layouts wraps naturally; no clipping mechanism; clamping would truncate user content (consistent with F-05/F-12 rejections).
+- B-04 — InterestRails null-while-loading is a documented deliberate tradeoff in-code ("A brief absence below the fold beats an empty-titled header"); MostRead reserves space; PickUpRail renders synchronously. Intentional design → OBSERVATION.
+- B-08 — auto-open effect fires once per mount; tab re-entry doesn't remount; the param can only arrive from onboarding once. No re-open path.
