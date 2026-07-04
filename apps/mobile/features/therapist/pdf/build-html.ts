@@ -456,7 +456,7 @@ export function buildTherapistPdfHtml(input: TherapistPdfInput): string {
   const preparedFor: PdfMetaRow[] = provider
     ? [
         {
-          label: 'Prepared for',
+          label: THERAPIST_COPY.preparedForLabel,
           value: provider.contact ? `${provider.name} · ${provider.contact}` : provider.name,
         },
       ]

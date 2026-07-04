@@ -43,7 +43,7 @@ export default function PrivacyScreen() {
     } catch {
       // File write / share sheet can fail (disk full, sheet already open) —
       // calm feedback, never a silent no-op or an unhandled rejection.
-      Alert.alert("Couldn't export your record right now", 'Please try again in a moment.');
+      Alert.alert(t.exportFailTitle, t.exportFailBody);
     } finally {
       setBusy(false);
     }

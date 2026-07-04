@@ -113,6 +113,15 @@ export const CT4_RELATIONSHIP = {
     lifelineTitle: '988 Suicide & Crisis Lifeline',
     lifelineSub: 'Call or text 988 — free, 24/7, confidential',
     lifelineTel: 'tel:988',
+    // Handler-less device fallbacks (PR-026) — shown when tel:/sms: rejects.
+    callFallback: (line: string) => `Calling isn't available on this device. From any phone: ${line}`, // CT4
+    textFallback: (line: string) => `Texting isn't available on this device. From any phone: ${line}`, // CT4
+  },
+
+  emptyRun: {
+    // Every question skipped — no responses to score (PR-020). NEEDS_CLINICAL_REVIEW.
+    title: 'Nothing to reflect on yet', // CT4
+    body: 'Every question was skipped, so there are no responses to summarize. You can try again whenever it feels right.', // CT4
   },
 
   history: {

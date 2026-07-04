@@ -4,6 +4,8 @@
 // reviewed by Dr. Dobson before ship. PDF_FOOTER is load-bearing → flagged CT4.
 
 export const THERAPIST_COPY = {
+  // S39 — linked-provider meta row on the shared PDF (PR-090).
+  preparedForLabel: 'Prepared for', // CT4
   // S38 — Why / consent intro.
   consentTitle: 'Share with your provider', // CT4
   consentBody:

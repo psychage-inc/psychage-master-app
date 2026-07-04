@@ -152,6 +152,9 @@ export const CT4_SETTINGS = {
       'When backup is on, only your daily check-ins (mood and any note) are copied to your account. Nothing from the Navigator is ever synced.',
     exportLabel: 'Export my record',
     exportDescription: 'Save a copy as a file you control.',
+    // Export failure (PR-067) — file write / share sheet can fail.
+    exportFailTitle: "Couldn't export your record right now", // CT4
+    exportFailBody: 'Please try again in a moment.', // CT4
     exportJson: 'Export as JSON',
     exportCsv: 'Export as CSV',
     exportEmpty: 'Nothing to export yet — your record is empty.',

@@ -1,6 +1,12 @@
 import { router } from 'expo-router';
 import { Alert, Linking } from 'react-native';
 
+// Handler-less device fallback (PR-026). No feature copy module exists for
+// clarity yet — CT4-marked here per the per-feature copy convention.
+const CLARITY_ACTION_COPY = {
+  reachFallback: (target: string) => `You can still reach it at ${target} from another phone or device.`, // CT4
+};
+
 // Shared action opener for the results dashboard's protocol/consultation links. tel:/sms:
 // and http(s) open via the system (Linking); everything else is an in-app route push.
 // Mirrors the web's <a href> vs <Link to> split.
@@ -13,7 +19,7 @@ export function openClarityAction(href: string): void {
       const target = href.replace(/^(tel:|sms:)/, '');
       Alert.alert(
         "Couldn't open this on your device",
-        `You can still reach it at ${target} from another phone or device.`,
+        CLARITY_ACTION_COPY.reachFallback(target),
       );
     });
     return;
