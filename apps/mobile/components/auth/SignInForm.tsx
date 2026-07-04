@@ -122,7 +122,7 @@ export function SignInForm({
               />
               <Pressable
                 accessibilityRole="button"
-                hitSlop={6}
+                hitSlop={12}
                 onPress={onForgotPassword}
                 className="self-end px-1 py-1"
               >
