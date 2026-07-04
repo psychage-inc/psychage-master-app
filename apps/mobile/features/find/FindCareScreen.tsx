@@ -928,7 +928,7 @@ const CompareStep = React.memo(function CompareStep({ ids, onBack, onRemove }: {
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
   const C = ({ l, v }: { l: string; v: string }) => (
-    <View className="py-2 border-t border-border dark:border-border-dark"><Text className="font-sans-bold text-[11px] text-text-tertiary dark:text-text-tertiary-dark uppercase tracking-wide">{l}</Text><Text className="font-sans text-sm text-text-primary dark:text-text-primary-dark mt-0.5">{v}</Text></View>
+    <View className="py-2 border-t border-border dark:border-border-dark"><Text className="font-sans-bold text-[11px] text-text-tertiary dark:text-text-tertiary-dark uppercase tracking-wide">{l}</Text><Text className="font-sans text-sm text-text-primary dark:text-text-primary-dark mt-0.5" numberOfLines={1} ellipsizeMode="tail">{v}</Text></View>
   );
   if (isLoading)
     return (
