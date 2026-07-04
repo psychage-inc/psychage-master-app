@@ -208,6 +208,7 @@ Internal flow screens (audited in host route's batch):
 - **F-05 / F-12 REJECTED** — prompt and chip labels sit in column ScrollView (ClarityFlow.tsx:232-247); RN Text wraps naturally, pill min-h grows, screen scrolls. No overflow path.
 - **F-11 REJECTED → OBSERVATION** — ConsultationGuidance links have pressed opacity + accessibilityRole="button"; matches CrisisUrgentBanner idiom. Adequate feedback.
 - **B-07 REJECTED** — FlashList v2 auto-sizes; `estimatedItemSize` deprecated (documented at MessageList.tsx:9-10).
+- **D-01 / D-02 REJECTED → OBSERVATION** — Text.tsx sets no accessibilityRole/aria-level on heading variants and ConditionGuideView/ArticleBody headings carry none; RN SRs see plain text, so "hierarchy skip" is visual variant naming with zero SR impact. Swapping variants would change typography = forbidden restyle. OBS: app-wide absence of header roles is a candidate future a11y improvement (systemic, out of minimal-diff scope).
 
 ### S-MCS-02 — MEDIUM — MomentCaptureSheet note input hidden by keyboard
 
