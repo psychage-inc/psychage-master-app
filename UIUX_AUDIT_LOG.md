@@ -198,6 +198,17 @@ Internal flow screens (audited in host route's batch):
 
 - Batch E suspected onPress fires during isLoading. Batch H verified FALSE: Button.tsx:87 guards `disabled || isLoading` on the Pressable. No defect.
 
+### Orchestrator verification pass 1 (direct reads, pre-repair)
+
+- **S-BTN-01 CONFIRMED** by direct read — FadeIn/FadeOut ungated at Button.tsx:117/121/125 AND `LinearTransition.springify()` layout animation at :113 also ungated. Fix covers all four.
+- **S-BTN-03 CONFIRMED** — Button.tsx:100.
+- **S-CHIP-01 RESOLVED (keep, MEDIUM)** — ChipXL is one-tap-advances by design (comment at ChipXL.tsx:5-7); ultra-fast double-tap before step re-render can still double-dispatch (ClarityFlow.tsx:244 `onPress={() => onAnswer(o.value)}`). Fix: one-shot guard in ChipXL reset on label change (instance reuse safe). DECISION_MADE_UNVERIFIED (exact race timing not device-verified; guard is harmless).
+- **G-01 REJECTED** — MessageList.tsx uses reversed-data + scaleY-flip: offset 0 IS the visual bottom → new messages auto-appear; scrolled-up users not yanked. Documented in file comment.
+- **F-04 REJECTED** — openClarityAction (open-action.ts:13-30) already catches Linking failures with Alert fallback naming the number; never silent. Crisis-safe as-is.
+- **F-05 / F-12 REJECTED** — prompt and chip labels sit in column ScrollView (ClarityFlow.tsx:232-247); RN Text wraps naturally, pill min-h grows, screen scrolls. No overflow path.
+- **F-11 REJECTED → OBSERVATION** — ConsultationGuidance links have pressed opacity + accessibilityRole="button"; matches CrisisUrgentBanner idiom. Adequate feedback.
+- **B-07 REJECTED** — FlashList v2 auto-sizes; `estimatedItemSize` deprecated (documented at MessageList.tsx:9-10).
+
 ### S-MCS-02 — MEDIUM — MomentCaptureSheet note input hidden by keyboard
 
 - component: MomentCaptureSheet · file: apps/mobile/components/moments/MomentCaptureSheet.tsx:111,125 · check: keyboard
