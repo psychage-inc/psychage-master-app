@@ -1,5 +1,5 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 
 import { HomeContainer } from '@/components/home/HomeContainer';
 import { FirstRunTour } from '@/features/onboarding/FirstRunTour';
@@ -22,13 +22,30 @@ import { isTourSeen, markTourSeen } from '@/lib/persistence/tour';
 // file off the Jest path (Jest does not transform the workspace TS package).
 export default function TodayScreen() {
   const { checkin } = useLocalSearchParams<{ checkin?: string }>();
-  const { session } = useAuth();
+  const { session, hydrated } = useAuth();
   const store = getMomentStore();
   const firstRun = store.getRecent(1).length === 0;
   const arrivingFromOnboarding = checkin === '1';
   // One-time cross-tab tour: after onboarding, on a normal launch (never over the
   // auto-opened first check-in sheet). Skippable; never blocks crisis.
   const [showTour, setShowTour] = useState(() => !arrivingFromOnboarding && !isTourSeen(storage));
+
+  // Mirror compass.tsx's focus re-read: bump state on tab focus so the home model
+  // re-derives from the store on every re-entry (a Moment captured on Compass, date
+  // rollover while the app sat on another tab) instead of staying mount-stale.
+  const [, setFocusTick] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusTick((t) => t + 1);
+    }, []),
+  );
+
+  // Session hydration (secure-store getSession) may still be in flight on a cold
+  // start — e.g. an iOS reinstall that kept the keychain session. Deciding the
+  // welcome redirect on a transiently-null session would bounce a signed-in user to
+  // /welcome, so hold. The native splash stays up until hydration (AuthEffects), so
+  // rendering nothing here paints no visible frame.
+  if (!hydrated) return null;
 
   if (!session && !arrivingFromOnboarding && !isWelcomeSeen(storage)) {
     return <Redirect href="/welcome" />;

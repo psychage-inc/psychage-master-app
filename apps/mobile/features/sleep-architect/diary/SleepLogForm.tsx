@@ -86,7 +86,12 @@ export function SleepLogForm({ initial, onSubmit, onCancel }: SleepLogFormProps)
 
   const timeFields: (keyof Draft)[] = ['bedtime', 'lights_out', 'wake_time', 'out_of_bed_time'];
   const caffeineValid = draft.caffeine_last_time === '' || HHMM_RE.test(draft.caffeine_last_time);
-  const timesValid = timeFields.every((f) => HHMM_RE.test(draft[f] as string)) && caffeineValid;
+  const formatsValid = timeFields.every((f) => HHMM_RE.test(draft[f] as string)) && caffeineValid;
+  // Equal bed / out-of-bed times describe a zero-length night — degenerate input
+  // the store and metrics reject, so it gets the same calm inline treatment here.
+  const degenerateNight =
+    HHMM_RE.test(draft.bedtime) && draft.bedtime === draft.out_of_bed_time;
+  const timesValid = formatsValid && !degenerateNight;
 
   const crisisFlagged = useMemo(
     () => detectCrisisContent(draft.notes) || detectCrisisContent(draft.dream_notes),
@@ -133,13 +138,13 @@ export function SleepLogForm({ initial, onSubmit, onCancel }: SleepLogFormProps)
       <Text variant="h1">{t.heading}</Text>
 
       <Section title={CT4_SLEEP.tabs.diary}>
-        <TimeField label={t.bedtime} value={draft.bedtime} onChange={(v) => set('bedtime', v)} invalid={showInvalid && !HHMM_RE.test(draft.bedtime)} />
+        <TimeField label={t.bedtime} value={draft.bedtime} onChange={(v) => set('bedtime', v)} invalid={showInvalid && (!HHMM_RE.test(draft.bedtime) || degenerateNight)} />
         <TimeField label={t.lightsOut} value={draft.lights_out} onChange={(v) => set('lights_out', v)} invalid={showInvalid && !HHMM_RE.test(draft.lights_out)} />
         <NumberField label={t.onset} value={draft.sleep_onset_minutes} onChange={(v) => set('sleep_onset_minutes', v)} />
         <NumberField label={t.wakings} value={draft.night_wakings} onChange={(v) => set('night_wakings', v)} />
         <NumberField label={t.wakeDuration} value={draft.night_waking_duration_minutes} onChange={(v) => set('night_waking_duration_minutes', v)} />
         <TimeField label={t.wakeTime} value={draft.wake_time} onChange={(v) => set('wake_time', v)} invalid={showInvalid && !HHMM_RE.test(draft.wake_time)} />
-        <TimeField label={t.outOfBed} value={draft.out_of_bed_time} onChange={(v) => set('out_of_bed_time', v)} invalid={showInvalid && !HHMM_RE.test(draft.out_of_bed_time)} />
+        <TimeField label={t.outOfBed} value={draft.out_of_bed_time} onChange={(v) => set('out_of_bed_time', v)} invalid={showInvalid && (!HHMM_RE.test(draft.out_of_bed_time) || degenerateNight)} />
       </Section>
 
       <Section title={t.quality}>
@@ -164,7 +169,7 @@ export function SleepLogForm({ initial, onSubmit, onCancel }: SleepLogFormProps)
 
       {showInvalid && !timesValid ? (
         <Text variant="caption" className="text-error dark:text-error-dark">
-          {t.invalid}
+          {formatsValid ? t.equalTimes : t.invalid}
         </Text>
       ) : null}
 

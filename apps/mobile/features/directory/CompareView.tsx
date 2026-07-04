@@ -6,6 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { GlobalHeader } from '@/components/GlobalHeader';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useBookmarkedIds, useToggleBookmark } from '@/features/bookmarks/hooks';
 import { colors } from '@/lib/colors';
@@ -147,11 +148,22 @@ export function CompareView() {
 
   const idList = useMemo(() => Array.from(savedIds ?? []).slice(0, MAX_COMPARE), [savedIds]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['providers', 'compare', idList],
     queryFn: async () => {
-      const rows = await Promise.all(idList.map((id) => getProviderById(id)));
-      return rows.filter((r): r is ProviderWithDetails => r != null);
+      // Settled per-id: one transient failure must not discard the columns that DID
+      // load — the failed provider drops out with a notice. Only when nothing loads
+      // at all do we throw, so TanStack Query surfaces the retryable error path.
+      const settled = await Promise.allSettled(idList.map((id) => getProviderById(id)));
+      const providers = settled
+        .filter((r): r is PromiseFulfilledResult<ProviderWithDetails | null> => r.status === 'fulfilled')
+        .map((r) => r.value)
+        .filter((r): r is ProviderWithDetails => r != null);
+      const failedCount = settled.filter((r) => r.status === 'rejected').length;
+      if (providers.length === 0 && failedCount > 0) {
+        throw new Error('Saved providers could not be loaded.');
+      }
+      return { providers, failedCount };
     },
     enabled: idList.length > 0,
   });
@@ -174,6 +186,28 @@ export function CompareView() {
     );
   }
 
+  // Load failure (connection / RPC) — recoverable, so offer a retry. Distinct from
+  // the loader (still fetching) and the empty prompt (nothing saved yet).
+  if (isError) {
+    return (
+      <Chrome>
+        <View className="flex-1 items-center justify-center gap-2 px-6" testID="compare-error">
+          <Text variant="h2" className="text-center">
+            Couldn't load these providers
+          </Text>
+          <Text variant="body" className="text-center text-text-secondary dark:text-text-secondary-dark">
+            Check your connection and try again.
+          </Text>
+          <View className="pt-1">
+            <Button variant="secondary" size="sm" onPress={() => void refetch()} testID="compare-retry">
+              Try again
+            </Button>
+          </View>
+        </View>
+      </Chrome>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <Chrome>
@@ -191,10 +225,19 @@ export function CompareView() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 12 }}
       >
-        {data.map((p) => (
+        {data.providers.map((p) => (
           <Column key={p.id} p={p} onRemove={() => remove(p.id)} />
         ))}
       </ScrollView>
+      {data.failedCount > 0 ? (
+        <Text
+          variant="caption"
+          className="px-4 pb-1 text-text-tertiary dark:text-text-tertiary-dark"
+          testID="compare-partial-notice"
+        >
+          Some saved providers couldn't be loaded right now.
+        </Text>
+      ) : null}
       {(savedIds?.size ?? 0) > MAX_COMPARE ? (
         <Text variant="caption" className="px-4 pb-3 text-text-tertiary dark:text-text-tertiary-dark">
           {t.compareCap}

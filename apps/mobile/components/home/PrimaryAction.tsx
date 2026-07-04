@@ -2,8 +2,8 @@
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import type { Tool } from '@/lib/tool-usage-store';
-import { Link } from 'expo-router';
+import { type Tool, toolUsageStore } from '@/lib/tool-usage-store';
+import { router } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 
@@ -26,9 +26,20 @@ export function PrimaryAction({ checkedInToday, dormantTool, onCheckIn }: Primar
   }
 
   if (dormantTool) {
+    // Push the REAL tool flow and record the open (clears the dormant nudge the
+    // same way the bento's open() does) — this card previously linked to the
+    // legacy /tool/[id] placeholder screen (PR-008).
+    const openDormant = () => {
+      toolUsageStore.recordUse(dormantTool.tool.id);
+      router.push(dormantTool.tool.route as Parameters<typeof router.push>[0]);
+    };
     return (
-      <Link href={dormantTool.tool.route as any} asChild>
-        <Pressable className="overflow-hidden rounded-xl bg-surface-active p-5 shadow-base dark:bg-surface-active-dark flex-row items-center justify-between active:scale-[0.98]">
+      <Pressable
+        onPress={openDormant}
+        accessibilityRole="button"
+        accessibilityLabel={`Use ${dormantTool.tool.name}`}
+        className="overflow-hidden rounded-xl bg-surface-active p-5 shadow-base dark:bg-surface-active-dark flex-row items-center justify-between active:scale-[0.98]"
+      >
           <View className="flex-1 gap-1">
             <Text variant="caption" className="text-primary dark:text-primary-dark font-sans-medium">It's been a while</Text>
             <Text variant="label" className="text-text-primary dark:text-text-primary-dark">Use {dormantTool.tool.name}</Text>
@@ -37,7 +48,6 @@ export function PrimaryAction({ checkedInToday, dormantTool, onCheckIn }: Primar
             <Text variant="caption" className="font-sans-medium">Open</Text>
           </View>
         </Pressable>
-      </Link>
     );
   }
 

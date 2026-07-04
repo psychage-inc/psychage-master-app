@@ -111,6 +111,10 @@ export function DirectoryView({
 
   const providers = active ? search.providers : (featured.data ?? []);
   const loading = active ? search.isLoading : featured.isLoading;
+  // searchProviders deliberately THROWS when the backend is unreachable (a genuine
+  // zero-result resolves to an empty list), so an outage must render as an error
+  // with a retry — never as "No matching providers".
+  const errored = active && search.isError;
   const filterCount =
     (filters.state ? 1 : 0) +
     filters.specialtySlugs.length +
@@ -315,7 +319,7 @@ export function DirectoryView({
           </Text>
         ) : null}
 
-        {active && !loading ? (
+        {active && !loading && !errored ? (
           <Text variant="caption" className="text-text-tertiary dark:text-text-tertiary-dark">
             {t.resultCount(search.total)}
           </Text>
@@ -343,6 +347,20 @@ export function DirectoryView({
       {loading ? (
         <View className="flex-1" testID="directory-loading">
           <DirectorySkeleton />
+        </View>
+      ) : errored ? (
+        <View className="flex-1 items-center justify-center gap-3 px-6" testID="directory-error">
+          <Text variant="h2" className="text-center">
+            Couldn't load providers
+          </Text>
+          <Text variant="body" className="text-center text-text-secondary dark:text-text-secondary-dark">
+            The directory didn't respond. This is usually a connection hiccup — please try again.
+          </Text>
+          <View className="pt-1">
+            <Button variant="secondary" size="sm" onPress={() => void search.refetch()} testID="directory-retry">
+              Try again
+            </Button>
+          </View>
         </View>
       ) : (
         <FlashList

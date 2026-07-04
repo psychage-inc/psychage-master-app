@@ -39,8 +39,11 @@ const DOT_CLASS: Record<SleepScoreBand, string> = {
   low: 'bg-charcoal-400',
 };
 
-// Scoring window options, matching web Sleep Architect (7/30/90 days, default 7).
-// Web: SleepDashboard range state '7'|'30'|'90' → useSleepScore(days).
+// Scoring window options (7/30/90 days, default 7). DELIBERATE web divergence
+// (PR-037): web's useSleepScore keeps an inclusive today-N cutoff (8 calendar
+// days for "7"); mobile windows are exactly N days so the dashboard, weekly
+// digest, and export all agree. Same data can therefore score slightly
+// differently on web until web adopts the fix.
 const RANGE_OPTIONS = [
   { days: 7, label: '7 days' },
   { days: 30, label: '30 days' },

@@ -118,7 +118,14 @@ export function createSupabaseAuthService(deps: SupabaseAuthServiceDeps = {}): A
           // Generic only: do NOT distinguish "already registered" (existence leak).
           return { ok: false, error: isNetworkError(error) ? 'offline' : 'invalid-credentials' };
         }
-        if (data.session) await recordEvent('sign_up', true);
+        if (!data.session) {
+          // Confirm-email ON: the account was created (or already existed — Supabase
+          // obfuscates, no existence leak) but there is NO session until the emailed
+          // link is tapped. Never fabricate a signed-in state here (PR-076) — the
+          // caller routes to /verify and must not setSession().
+          return { ok: true, session: null, needsVerification: true };
+        }
+        await recordEvent('sign_up', true);
         const verified = Boolean(data.user?.email_confirmed_at);
         return {
           ok: true,

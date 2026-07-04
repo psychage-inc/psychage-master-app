@@ -232,6 +232,28 @@ export class ClarityResultStore {
     return { ...snapshot };
   }
 
+  /**
+   * Replace the MOST RECENT snapshot with a re-scored result from the same
+   * sitting (BACK from results → re-answer → results again). Keeps the
+   * one-row-per-run invariant while making the persisted record match what
+   * the user is looking at (second-pass review of PR-024). Falls back to a
+   * plain save when the store is empty.
+   */
+  replaceLatest(result: ClarityResult): ClaritySnapshot {
+    if (this.entries.length === 0) return this.save(result);
+    const prev = this.entries[this.entries.length - 1] as ClaritySnapshot;
+    const snapshot: ClaritySnapshot = {
+      id: prev.id,
+      date: toLocalDate(this.now()),
+      composite: result.totalScore,
+      tier: result.tier,
+      domains: result.domainScores,
+    };
+    this.entries[this.entries.length - 1] = snapshot;
+    this.persist();
+    return { ...snapshot };
+  }
+
   /** The `n` most recent snapshots, newest first. `n <= 0` ⇒ []. */
   getRecent(n: number): ClaritySnapshot[] {
     if (!Number.isInteger(n) || n <= 0) return [];

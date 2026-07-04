@@ -578,7 +578,10 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
       'Expands Category 22\'s existential foundation into broader territory — positive psychology, spiritual practice, values and ethics, collective meaning. Captures audiences interested in human flourishing, consciousness, and integrated wellbeing beyond symptom reduction.',
     clarityScoreInstruments: ['WHO-5', 'UCLA-3'],
     navigatorConditions: [],
-    relatedCategories: [7, 8, 15, 22],
+    // Category 22 was merged INTO this category (see the note above Category 23),
+    // so it no longer resolves via getCategoryByNumber — and a self-reference
+    // would be meaningless. Related categories must all resolve (dead-link guard).
+    relatedCategories: [7, 8, 15],
     isGapCloser: false,
   },
 ];

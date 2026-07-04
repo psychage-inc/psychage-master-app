@@ -27,6 +27,9 @@ interface Milestone {
   readonly description: string;
 }
 
+// `history` must be the FULL stored history (newest first — the route passes
+// getRecent(CLARITY_HISTORY_CAP)): the "since your first assessment" comparisons
+// here and in computeMilestones read the oldest entry as the true first snapshot.
 function computeInsights(history: ClarityHistoryItem[]) {
   if (history.length < 2) return null;
   const latest = history[0];

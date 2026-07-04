@@ -8,12 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { AUTH_COPY } from '@/features/auth/copy';
 import type { SocialProvider } from '@/features/auth';
-import {
-  type EmailError,
-  type PasswordError,
-  validateEmail,
-  validatePassword,
-} from '@/features/auth/validate';
+import { type EmailError, type PasswordError, validateEmail } from '@/features/auth/validate';
 import { DURATION, easingFn, useReducedMotion } from '@/lib/motion';
 
 // Sign in — email + password. Returning users and web users logging into mobile with
@@ -68,7 +63,10 @@ export function SignInForm({
 
   const handleSubmit = () => {
     const e = validateEmail(email);
-    const p = validatePassword(password);
+    // Sign-IN only requires a non-empty password — min-8 is a sign-UP policy, and a
+    // legacy/admin-created shorter password must still be submittable. The server is
+    // the authority on whether the credentials match.
+    const p: PasswordError | null = password.length === 0 ? 'empty' : null;
     setEmailError(e);
     setPasswordError(p);
     if (e === null && p === null) onSubmit(email.trim(), password);

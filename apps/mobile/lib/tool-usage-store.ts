@@ -11,12 +11,17 @@ export interface Tool {
   thresholdDays?: number;    // how long counts as "a long time"
 }
 
+// Routes point at the REAL native flows (matching features/compass/routes.ts).
+// They previously pointed at the legacy `/tool/[id]` placeholder, so the home
+// dormant-tool CTA and the Insights "Your Tools" rail landed users on a
+// "This is a placeholder" screen in production (PR-008). `/tool/[id]` remains
+// only as a deep-link redirect onto these destinations.
 export const TOOLS: Record<ToolId, Tool> = {
-  toolkit:   { id: 'toolkit',   name: 'Toolkit',           title: 'Steady yourself right now', route: '/tool/toolkit' },
-  navigator: { id: 'navigator', name: 'Symptom Navigator', title: 'Make sense of what you feel', route: '/tool/navigator', reEngage: true, thresholdDays: 21 },
-  mindmate:  { id: 'mindmate',  name: 'MindMate',          title: 'Talk it through', route: '/tool/mindmate' },
-  clarity:   { id: 'clarity',   name: 'Clarity Score',     title: 'Understand how you’re doing', route: '/tool/clarity', reEngage: true, thresholdDays: 14 },
-  breathing: { id: 'breathing', name: 'Breathing',         title: 'One minute to settle', route: '/tool/breathing' },
+  toolkit:   { id: 'toolkit',   name: 'Toolkit',           title: 'Steady yourself right now', route: '/toolkit' },
+  navigator: { id: 'navigator', name: 'Symptom Navigator', title: 'Make sense of what you feel', route: '/navigator', reEngage: true, thresholdDays: 21 },
+  mindmate:  { id: 'mindmate',  name: 'MindMate',          title: 'Talk it through', route: '/tools/mindmate' },
+  clarity:   { id: 'clarity',   name: 'Clarity Score',     title: 'Understand how you’re doing', route: '/tools/clarity', reEngage: true, thresholdDays: 14 },
+  breathing: { id: 'breathing', name: 'Breathing',         title: 'One minute to settle', route: '/toolkit?exercise=breathing' },
 };
 
 const STORAGE_KEY = 'psychage:tool_usage';
@@ -26,18 +31,42 @@ export interface ToolUsageData {
   usage: Partial<Record<ToolId, number>>;
 }
 
+// Legacy 'psychage:' key with live user data — structurally validated on read
+// instead of SR-13-enveloped: wrapping it in a versioned envelope would orphan
+// every existing row. Anomalies (JSON.parse('"null"') → null, arrays, scalars,
+// non-object `usage`) reseed to the empty default so `data.usage[id] =` in
+// recordUse never throws (PR-006).
+function sanitize(parsed: unknown): ToolUsageData | null {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+  const e = parsed as { installedAt?: unknown; usage?: unknown };
+  if (typeof e.installedAt !== 'number') return null;
+  if (typeof e.usage !== 'object' || e.usage === null || Array.isArray(e.usage)) return null;
+
+  const usage: Partial<Record<ToolId, number>> = {};
+  for (const [id, at] of Object.entries(e.usage)) {
+    if (id in TOOLS && typeof at === 'number') usage[id as ToolId] = at;
+  }
+  return { installedAt: e.installedAt, usage };
+}
+
+// The seed IS written on first read: installedAt anchors the dormant-tool nudge
+// (`since = now - installedAt` for tools never opened), so a per-call
+// Date.now() fallback would keep resetting the baseline and the nudge could
+// never fire (second-pass review of PR-006). The PR-006 hardening (validate
+// before trust) stays; only a missing/corrupt blob triggers the seed write.
 function getStoredData(): ToolUsageData {
   const raw = storage.get(STORAGE_KEY);
   if (raw) {
     try {
-      return JSON.parse(raw);
+      const validated = sanitize(JSON.parse(raw));
+      if (validated) return validated;
     } catch {
-      // fallback
+      // fall through to the fresh seed
     }
   }
-  const newData: ToolUsageData = { installedAt: Date.now(), usage: {} };
-  storage.set(STORAGE_KEY, JSON.stringify(newData));
-  return newData;
+  const seeded: ToolUsageData = { installedAt: Date.now(), usage: {} };
+  storage.set(STORAGE_KEY, JSON.stringify(seeded));
+  return seeded;
 }
 
 export const toolUsageStore = {

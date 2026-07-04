@@ -109,7 +109,7 @@ export default function RootLayout() {
   // resolve via tokens/mobile.tokens.json type.family. The mono token was dropped
   // (no production use). The prior bundled brand typeface was removed per DD-001 —
   // its ITF/Fontshare EULA does not clearly cover app-binary embedding.
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     IBMPlexSans_400Regular,
     IBMPlexSans_500Medium,
     IBMPlexSans_700Bold,
@@ -117,8 +117,11 @@ export default function RootLayout() {
   });
 
   // Splash now hides on session hydration (AuthEffects), not on fonts alone — but we
-  // still hold the tree until fonts load so AuthProvider mounts with type ready.
-  if (!fontsLoaded) return null;
+  // still hold the tree until fonts SETTLE so AuthProvider mounts with type ready.
+  // A font-load failure must not hang the native splash forever: per expo-font's
+  // documented pattern, `loaded || error` counts as settled — on error we proceed
+  // and render with system fonts.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <QueryClientProvider client={queryClient}>

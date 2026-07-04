@@ -213,48 +213,14 @@ export const QUALITY_GATE = {
 /**
  * Terms to flag during sensitivity scanning, with preferred alternatives.
  * Based on APA, NIMH, and Mental Health First Aid language guidelines.
+ *
+ * SINGLE SOURCE: re-exported from the sensitivity module's 30-term person-first
+ * list (`packages/shared/sensitivity/terms.ts`, Sacred Rule #5). PEAF previously
+ * carried a byte-identical copy that could silently drift; a drift-guard test
+ * (`peaf/__tests__/sensitivity-terms-drift.test.ts`) pins the two surfaces to the
+ * same set. The PEAF barrel name and shape are unchanged for consumers.
  */
-export const SENSITIVITY_TERMS: { term: string; suggestion: string }[] = [
-  // Suicide language
-  { term: 'committed suicide', suggestion: 'died by suicide' },
-  { term: 'commit suicide', suggestion: 'die by suicide' },
-  { term: 'commits suicide', suggestion: 'dies by suicide' },
-  { term: 'committing suicide', suggestion: 'dying by suicide' },
-  { term: 'successful suicide', suggestion: 'death by suicide' },
-  { term: 'failed suicide', suggestion: 'suicide attempt' },
-  { term: 'unsuccessful suicide', suggestion: 'survived a suicide attempt' },
-
-  // Stigmatizing identity labels
-  { term: 'the mentally ill', suggestion: 'people with mental illness' },
-  { term: 'a schizophrenic', suggestion: 'a person with schizophrenia' },
-  { term: 'an anorexic', suggestion: 'a person with anorexia' },
-  { term: 'a bulimic', suggestion: 'a person with bulimia' },
-  { term: 'a depressive', suggestion: 'a person with depression' },
-  { term: 'a psychotic', suggestion: 'a person experiencing psychosis' },
-  { term: 'the disabled', suggestion: 'people with disabilities' },
-  { term: 'substance abuser', suggestion: 'person with substance use disorder' },
-  { term: 'drug addict', suggestion: 'person with substance use disorder' },
-  { term: 'alcoholic', suggestion: 'person with alcohol use disorder' },
-
-  // Suffering/victimhood framing
-  { term: 'suffers from', suggestion: 'lives with / is diagnosed with' },
-  { term: 'suffering from', suggestion: 'living with / diagnosed with' },
-  { term: 'victim of', suggestion: 'person affected by / survivor of' },
-  { term: 'afflicted with', suggestion: 'diagnosed with' },
-  { term: 'stricken with', suggestion: 'diagnosed with' },
-  { term: 'plagued by', suggestion: 'experiences' },
-
-  // Minimizing language
-  { term: 'just a phase', suggestion: '[remove — dismisses lived experience]' },
-  { term: 'attention seeking', suggestion: 'expressing a need for support' },
-  { term: 'attention-seeking', suggestion: 'expressing a need for support' },
-
-  // Clinical-jargon-as-adjective
-  { term: 'is bipolar', suggestion: 'has bipolar disorder' },
-  { term: 'is OCD', suggestion: 'has OCD' },
-  { term: 'is ADHD', suggestion: 'has ADHD' },
-  { term: 'is autistic', suggestion: 'is autistic / has autism (respect community preference)' },
-];
+export { SENSITIVITY_TERMS } from '../sensitivity/terms';
 
 // ---------------------------------------------------------------------------
 // Blocked Source Domains

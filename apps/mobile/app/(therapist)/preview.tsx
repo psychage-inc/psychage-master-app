@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { Alert } from 'react-native';
 
 import { PdfPreview } from '@/components/therapist/PdfPreview';
 import type { TerrainDay } from '@/components/terrain/terrain-geometry';
@@ -13,6 +14,7 @@ import {
 } from '@/features/therapist';
 import type { TherapistToolSummaries } from '@/features/therapist/pdf/build-html';
 import { expoPdfPrinter } from '@/features/therapist/pdf/expo-printer';
+import { PDF_SHARE_FAILED_COPY } from '@/features/therapist/pdf/printer';
 import type { LocalCalendarDate } from '@psychage/shared/engagement';
 import { dailyRollupReader } from '@/lib/daily-rollup';
 import { getMomentStore } from '@/lib/moment-store';
@@ -69,8 +71,11 @@ function buildToolSummaries(from: LocalCalendarDate, to: LocalCalendarDate): The
       date: rel.createdAt.slice(0, 10),
       composite: rel.compositeScore,
       tier: rel.tierLabel,
+      // skipPartner runs never assessed the partner domain — its stored score is
+      // a neutral fallback, not data. Handing a clinician "Partner 50/100" for a
+      // user who declared no partner fabricates an assessment (PR-021).
       domains: [
-        { label: 'Partner', value: d.partner, max: 100 },
+        ...(rel.skipPartner ? [] : [{ label: 'Partner', value: d.partner, max: 100 }]),
         { label: 'Family', value: d.family, max: 100 },
         { label: 'Friends', value: d.friends, max: 100 },
         { label: 'Community', value: d.community, max: 100 },
@@ -101,7 +106,12 @@ function buildToolSummaries(from: LocalCalendarDate, to: LocalCalendarDate): The
 // LOCAL store (the synced/account record is the gated sync layer — out of this wave).
 export default function PreviewScreen() {
   const params = useLocalSearchParams<{ days?: string }>();
-  const days = Number(typeof params.days === 'string' ? params.days : '7') || 7;
+  // Closed set only (the S40 range screen offers 7/14/30). `days` is a deep-linkable
+  // route param: an unbounded Number() here let `?days=999999999` drive a ~1e9-day
+  // enumerateDays loop inside first-render useMemo — a frozen JS thread on cold
+  // start (PR-056). Anything outside the set falls back to the 7-day default.
+  const parsed = Number(typeof params.days === 'string' ? params.days : '7');
+  const days = parsed === 14 || parsed === 30 ? parsed : 7;
 
   const data = useMemo(() => {
     const { from, to } = windowForDays(new Date(), days);
@@ -115,7 +125,12 @@ export default function PreviewScreen() {
     return { from, to, entries, terrainDays, dayCount, entryCount };
   }, [days]);
 
+  // Double-tap guard: a second generateAndShare while the sheet is opening
+  // resolves {ok:false} on Android and would fire a spurious failure alert.
+  const sharingRef = useRef(false);
   const handleShare = (fullName: string, includeTools: boolean) => {
+    if (sharingRef.current) return;
+    sharingRef.current = true;
     const html = buildTherapistPdfHtml({
       fullName,
       from: data.from,
@@ -124,7 +139,12 @@ export default function PreviewScreen() {
       // Opt-in only — default share stays check-ins-only to match the consent copy.
       tools: includeTools ? buildToolSummaries(data.from, data.to) : undefined,
     });
-    void generateAndShare(html, expoPdfPrinter);
+    void generateAndShare(html, expoPdfPrinter).then((result) => {
+      sharingRef.current = false;
+      // Same calm feedback as every other export surface (PR-025) — a failed
+      // print/share must not be a silent no-op.
+      if (!result.ok) Alert.alert(PDF_SHARE_FAILED_COPY.title, PDF_SHARE_FAILED_COPY.message);
+    });
   };
 
   return (

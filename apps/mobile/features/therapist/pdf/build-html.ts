@@ -25,6 +25,7 @@ import {
 
 import { THERAPIST_COPY } from '../copy';
 import type { SessionPrepSummary } from '../session-prep/summary';
+import { getLinkedProvider, type Provider } from '../use-provider';
 import { PDF_FONT_FAMILY, PDF_FONTS_MARKER } from './pdf-fonts';
 
 // C-PDF — the therapist export. A PRINT artifact, NOT an app screen: white page,
@@ -100,6 +101,12 @@ export interface TherapistPdfInput {
   readonly locale?: string;
   /** Optional cross-tool summaries (Clarity, Navigator, Relationship, Mood, Sleep). */
   readonly tools?: TherapistToolSummaries;
+  /**
+   * The linked provider (S39 add-provider) — stamped as a "Prepared for" meta row so the
+   * captured name/contact actually serves the share. Defaults to the flow's linked
+   * provider (getLinkedProvider) when omitted; escaped like all other user input.
+   */
+  readonly provider?: Provider | null;
 }
 
 export interface RangeSummary {
@@ -443,6 +450,17 @@ export function buildTherapistPdfHtml(input: TherapistPdfInput): string {
 
   const s = THERAPIST_COPY.shell;
   const ci = THERAPIST_COPY.checkIn;
+  // The provider linked in the S39 flow (or an explicit override). Name/contact are user
+  // input — rendered via the meta grid, which escapes every value (renderDocument).
+  const provider = input.provider !== undefined ? input.provider : getLinkedProvider();
+  const preparedFor: PdfMetaRow[] = provider
+    ? [
+        {
+          label: 'Prepared for',
+          value: provider.contact ? `${provider.name} · ${provider.contact}` : provider.name,
+        },
+      ]
+    : [];
   const thead = `<tr><th class="h-date">${escapeHtml(ci.colDate)}</th><th class="h-state">${escapeHtml(ci.colState)}</th><th class="h-note">${escapeHtml(ci.colNotes)}</th></tr>`;
 
   const body = `  <div class="terrain">
@@ -460,6 +478,7 @@ export function buildTherapistPdfHtml(input: TherapistPdfInput): string {
     kindLabel: s.kindLabel,
     meta: [
       { label: s.metaName, value: input.fullName.trim() },
+      ...preparedFor,
       { label: s.metaPeriod, value: formatRangeLabel(from, to) },
       { label: s.metaLogged, value: THERAPIST_COPY.rangeCountLine(dayCount, entryCount) },
     ],

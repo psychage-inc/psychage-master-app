@@ -20,23 +20,32 @@ const DOMAINS: RelationshipDomain[] = ['partner', 'family', 'friends', 'communit
 /**
  * Compute the score for a single domain (0–100).
  * Reverse-scored items are inverted (6 - rawValue).
+ *
+ * PR-020: scored over ANSWERED items only. The web port assumed complete answers
+ * and defaulted every missing item to neutral 3; mobile's Skip button records
+ * nothing, so skipped items were silently scored as real "Neutral" responses —
+ * dragging genuine answers toward 50 and fabricating data the user never gave.
+ * A domain with zero answered items falls back to 50 (the same value the old
+ * all-defaults path produced), and the flow refuses to build a result from a
+ * fully skipped run before scoring is ever reached.
  */
 export function computeDomainScore(
   answers: Record<string, number>,
   domain: RelationshipDomain,
 ): number {
   const domainQuestions = QUESTIONS.filter((q) => q.domain === domain);
-  if (domainQuestions.length === 0) return 0;
+  const answered = domainQuestions.filter((q) => answers[q.id] !== undefined);
+  if (answered.length === 0) return domainQuestions.length === 0 ? 0 : 50;
 
   let total = 0;
-  for (const q of domainQuestions) {
-    const raw = answers[q.id] ?? 3; // neutral default if somehow missing
+  for (const q of answered) {
+    const raw = answers[q.id] as number;
     const value = q.reverseScored ? 6 - raw : raw;
     total += value;
   }
 
-  const min = domainQuestions.length; // all 1s
-  const max = domainQuestions.length * 5; // all 5s
+  const min = answered.length; // all 1s
+  const max = answered.length * 5; // all 5s
   return Math.round(((total - min) / (max - min)) * 100);
 }
 
@@ -86,17 +95,19 @@ export function computeSubDimensionScore(
   subDimension: SubDimension,
 ): number {
   const items = getSubDimensionQuestions(subDimension);
-  if (items.length === 0) return 0;
+  // PR-020: answered items only — see computeDomainScore.
+  const answered = items.filter((q) => answers[q.id] !== undefined);
+  if (answered.length === 0) return items.length === 0 ? 0 : 50;
 
   let total = 0;
-  for (const q of items) {
-    const raw = answers[q.id] ?? 3;
+  for (const q of answered) {
+    const raw = answers[q.id] as number;
     const value = q.reverseScored ? 6 - raw : raw;
     total += value;
   }
 
-  const min = items.length; // all 1s
-  const max = items.length * 5; // all 5s
+  const min = answered.length; // all 1s
+  const max = answered.length * 5; // all 5s
   return Math.round(((total - min) / (max - min)) * 100);
 }
 
@@ -134,24 +145,32 @@ export function computeAllSubDimensionScores(
  * Score interpretation: 1-2 = not detected, 3 = mild, 4-5 = present
  */
 export function computeFourHorsemen(answers: Record<string, number>): FourHorsemenResult {
-  // Raw values (defaulting to 3 = neutral)
-  const criticismRaw = answers.p_cq_01 ?? 3;
-  const stonewallingRaw = answers.p_cq_02 ?? 3;
-  const contemptRaw = answers.p_ap_02 ?? 3;
+  // PR-020: a horseman can only be detected from an ANSWERED item. The old
+  // `?? 3` default scored every skipped item as 3 (= mild), so skipping all
+  // conflict items fabricated mildCount=4 and a "Mild Conflict Pattern" card
+  // from zero answers. A skipped item now contributes score 1 (= not detected)
+  // and is excluded from the mild/active counts.
+  const criticismRaw = answers.p_cq_01;
+  const stonewallingRaw = answers.p_cq_02;
+  const contemptRaw = answers.p_ap_02;
 
   // Transform: for forward-scored items, lower response = higher horseman risk
-  const criticismScore = 6 - criticismRaw;
-  const stonewallingScore = 6 - stonewallingRaw;
-  const contemptScore = contemptRaw; // already reverse in question bank — raw high = contempt
+  const criticismScore = criticismRaw === undefined ? 1 : 6 - criticismRaw;
+  const stonewallingScore = stonewallingRaw === undefined ? 1 : 6 - stonewallingRaw;
+  const contemptScore = contemptRaw ?? 1; // already reverse in question bank — raw high = contempt
   // Defensiveness shares signal with stonewalling (same item captures both)
   const defensivenessScore = stonewallingScore;
 
-  const scores = [criticismScore, contemptScore, defensivenessScore, stonewallingScore];
+  const answeredScores = [
+    ...(criticismRaw === undefined ? [] : [criticismScore]),
+    ...(contemptRaw === undefined ? [] : [contemptScore]),
+    ...(stonewallingRaw === undefined ? [] : [defensivenessScore, stonewallingScore]),
+  ];
   const presentThreshold = 4;
   const mildThreshold = 3;
 
-  const activeCount = scores.filter((s) => s >= presentThreshold).length;
-  const mildCount = scores.filter((s) => s >= mildThreshold).length;
+  const activeCount = answeredScores.filter((s) => s >= presentThreshold).length;
+  const mildCount = answeredScores.filter((s) => s >= mildThreshold).length;
 
   let overallRisk: 'low' | 'moderate' | 'elevated' = 'low';
   if (activeCount > 0 || contemptScore >= presentThreshold) {

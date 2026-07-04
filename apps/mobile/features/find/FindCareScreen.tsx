@@ -24,7 +24,7 @@ import {
   Stethoscope, Trash2, Users, X,
 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Modal, Pressable, ScrollView, TextInput, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, TextInput, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, LinearTransition, SlideInDown, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
@@ -142,8 +142,8 @@ function Tap({ onPress, children, className, style, accessibilityLabel, accessib
   const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   const cfg = { damping: 20, stiffness: 400, mass: 0.6 };
   return (
-    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? 'button'} onPress={onPress} onPressIn={() => { s.value = withSpring(activeScale, cfg); }} onPressOut={() => { s.value = withSpring(1, cfg); }}>
-      <Animated.View className={className} style={[a, style]}>{children}</Animated.View>
+    <Pressable accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole ?? 'button'} onPress={onPress} onPressIn={() => { s.value = withSpring(activeScale, cfg); }} onPressOut={() => { s.value = withSpring(1, cfg); }} style={style}>
+      <Animated.View className={className} style={a}>{children}</Animated.View>
     </Pressable>
   );
 }
@@ -165,6 +165,65 @@ function Skeleton() {
     </Animated.View>
   );
 }
+
+/* ----------------------------- shared chrome ----------------------------- */
+// Module scope (not the render body): a component type re-created during render gets
+// a fresh identity every render, remounting its subtree on every keystroke. Theme
+// values are derived inside each component (same pattern as ProfileStep / Row).
+const Header = ({ back, title, hideMine, onOpenSaved }: { back?: () => void; title?: string; hideMine?: boolean; onOpenSaved?: () => void }) => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const ink = isDark ? colors.text.primary.dark : colors.text.primary.light;
+  const teal = isDark ? colors.teal[400] : colors.teal[600];
+  const red = isDark ? colors.crisis.dark : colors.crisis.light;
+  const my = useMyProviders();
+  return (
+    <Animated.View layout={LinearTransition} className="flex-row items-center justify-between px-6 pt-3 pb-4">
+      {back ? (
+        <Tap activeScale={0.85} onPress={back}><View className="p-2.5 -ml-2.5 bg-surface-active/50 dark:bg-surface-active-dark/50 rounded-full"><ChevronLeft size={24} color={ink} /></View></Tap>
+      ) : (
+        <PsychageLogo className="font-display text-2xl text-text-primary dark:text-text-primary-dark" />
+      )}
+      {title ? <Text className="font-sans-bold text-[17px] text-text-primary dark:text-text-primary-dark">{title}</Text> : null}
+      <View className="flex-row items-center gap-3">
+        {hideMine || !onOpenSaved ? null : (
+          <Tap activeScale={0.9} accessibilityLabel="My providers" onPress={onOpenSaved}>
+            <View className="p-1.5"><Bookmark size={20} color={my.items.length ? teal : ink} fill={my.items.length ? teal : 'transparent'} /></View>
+          </Tap>
+        )}
+        <Tap activeScale={0.9} accessibilityLabel="Help now" onPress={() => router.push('/crisis')}>
+          <View className="flex-row items-center gap-1.5 bg-error/10 dark:bg-error-dark/20 border border-error/30 dark:border-error-dark/40 rounded-full px-4 py-1.5 shadow-sm dark:shadow-none">
+            <LifeBuoy size={16} color={red} /><Text className="font-sans-bold text-[14px] text-error dark:text-error-dark">Help</Text>
+          </View>
+        </Tap>
+        <HeaderAvatar />
+      </View>
+    </Animated.View>
+  );
+};
+const Chip = ({ label, onPress }: { label: string; onPress: () => void }) => {
+  const { colorScheme } = useColorScheme();
+  const soft = colorScheme === 'dark' ? colors.text.secondary.dark : colors.text.secondary.light;
+  return (
+    <Tap onPress={onPress} activeScale={0.95}>
+      <View className="flex-row items-center gap-1.5 bg-surface dark:bg-surface-dark border border-border/60 dark:border-border-dark/60 rounded-full px-3.5 py-2 shadow-sm dark:shadow-none">
+        <Text className="font-sans-medium text-[14px] text-text-primary dark:text-text-primary-dark">{label}</Text><ChevronDown size={14} color={soft} />
+      </View>
+    </Tap>
+  );
+};
+const Primary = ({ label, onPress, disabled, color, icon }: { label: string; onPress?: () => void; disabled?: boolean; color?: string; icon?: React.ReactNode }) => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bg = color ?? (isDark ? colors.teal[400] : colors.teal[600]);
+  return (
+    <Tap onPress={disabled ? undefined : onPress} activeScale={0.96}>
+      <View style={{ backgroundColor: bg, opacity: disabled ? 0.45 : 1, shadowColor: bg, shadowOffset: { width: 0, height: 4 }, shadowOpacity: isDark ? 0 : 0.3, shadowRadius: 8, elevation: isDark ? 0 : 4 }} className="rounded-[16px] py-4 flex-row items-center justify-center gap-2">
+        {icon}<Text className="font-sans-bold text-white text-[17px]">{label}</Text>
+      </View>
+    </Tap>
+  );
+};
 
 type Step = 'location' | 'manual' | 'city' | 'type' | 'outside' | 'results' | 'profile' | 'compare' | 'saved';
 
@@ -198,7 +257,7 @@ export default function FindCareScreen() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [sort, setSort] = useState<'relevance' | 'name' | 'distance'>('relevance');
-  const [sheet, setSheet] = useState<null | 'sort' | 'crisis' | 'addProvider'>(null);
+  const [sheet, setSheet] = useState<null | 'sort' | 'addProvider'>(null);
 
   // My providers — local-first (works signed-out), used for save + compare + call list.
   const my = useMyProviders();
@@ -209,6 +268,42 @@ export default function FindCareScreen() {
     const id = setTimeout(() => setDebounced(query.trim()), 300);
     return () => clearTimeout(id);
   }, [query]);
+
+  // Android hardware back walks the wizard back one step (mirroring each screen's
+  // on-screen back transition) instead of exiting the tab. At the step this visit
+  // ENTERED on (and at the absolute root) the system default applies. The
+  // subscription is torn down on unmount.
+  const entryStep = useRef(step).current;
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === entryStep || step === 'location') return false;
+      switch (step) {
+        case 'manual':
+          setStep('location');
+          return true;
+        case 'city':
+        case 'outside':
+          setStep('manual');
+          return true;
+        case 'type':
+          setStep(city ? 'city' : 'manual');
+          return true;
+        case 'results':
+          setStep('type');
+          return true;
+        case 'profile':
+        case 'compare':
+          setStep('results');
+          return true;
+        case 'saved':
+          setStep(loc ? 'type' : 'location');
+          return true;
+        default:
+          return false;
+      }
+    });
+    return () => sub.remove();
+  }, [step, entryStep, city, loc]);
 
   const stateAbbr = loc ? ABBR[loc] : undefined;
   // No lat/lng/radius: provider_locations carry no coordinates, so a geo-radius search
@@ -295,50 +390,13 @@ export default function FindCareScreen() {
     state: p.primary_state,
   });
 
-  /* ----------------------------- shared chrome ----------------------------- */
-  const Header = ({ back, title, hideMine }: { back?: () => void; title?: string; hideMine?: boolean }) => (
-    <Animated.View layout={LinearTransition} className="flex-row items-center justify-between px-6 pt-3 pb-4">
-      {back ? (
-        <Tap activeScale={0.85} onPress={back}><View className="p-2.5 -ml-2.5 bg-surface-active/50 dark:bg-surface-active-dark/50 rounded-full"><ChevronLeft size={24} color={ink} /></View></Tap>
-      ) : (
-        <PsychageLogo className="font-display text-2xl text-text-primary dark:text-text-primary-dark" />
-      )}
-      {title ? <Text className="font-sans-bold text-[17px] text-text-primary dark:text-text-primary-dark">{title}</Text> : null}
-      <View className="flex-row items-center gap-3">
-        {hideMine ? null : (
-          <Tap activeScale={0.9} accessibilityLabel="My providers" onPress={() => setStep('saved')}>
-            <View className="p-1.5"><Bookmark size={20} color={my.items.length ? teal : ink} fill={my.items.length ? teal : 'transparent'} /></View>
-          </Tap>
-        )}
-        <Tap activeScale={0.9} onPress={() => setSheet('crisis')}>
-          <View className="flex-row items-center gap-1.5 bg-error/10 dark:bg-error-dark/20 border border-error/30 dark:border-error-dark/40 rounded-full px-4 py-1.5 shadow-sm dark:shadow-none">
-            <LifeBuoy size={16} color={red} /><Text className="font-sans-bold text-[14px] text-error dark:text-error-dark">Help</Text>
-          </View>
-        </Tap>
-        <HeaderAvatar />
-      </View>
-    </Animated.View>
-  );
-  const Chip = ({ label, onPress }: { label: string; onPress: () => void }) => (
-    <Tap onPress={onPress} activeScale={0.95}>
-      <View className="flex-row items-center gap-1.5 bg-surface dark:bg-surface-dark border border-border/60 dark:border-border-dark/60 rounded-full px-3.5 py-2 shadow-sm dark:shadow-none">
-        <Text className="font-sans-medium text-[14px] text-text-primary dark:text-text-primary-dark">{label}</Text><ChevronDown size={14} color={soft} />
-      </View>
-    </Tap>
-  );
-  const Primary = ({ label, onPress, disabled, color = teal, icon }: { label: string; onPress?: () => void; disabled?: boolean; color?: string; icon?: React.ReactNode }) => (
-    <Tap onPress={disabled ? undefined : onPress} activeScale={0.96}>
-      <View style={{ backgroundColor: color, opacity: disabled ? 0.45 : 1, shadowColor: color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: isDark ? 0 : 0.3, shadowRadius: 8, elevation: isDark ? 0 : 4 }} className="rounded-[16px] py-4 flex-row items-center justify-center gap-2">
-        {icon}<Text className="font-sans-bold text-white text-[17px]">{label}</Text>
-      </View>
-    </Tap>
-  );
+  const openSaved = () => setStep('saved');
 
   /* ============================ LOCATION ============================ */
   if (step === 'location')
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-        <Header />
+        <Header onOpenSaved={openSaved} />
         <View className="px-5 pt-2">
           <Text className="font-display text-4xl text-text-primary dark:text-text-primary-dark mt-1.5 mb-2.5">Find care</Text>
           <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-base leading-6 mb-2">Browse providers listed in the public NPI registry, licensed in your state. A listing is information, not a recommendation or endorsement by Psychage.</Text>
@@ -354,7 +412,7 @@ export default function FindCareScreen() {
   if (step === 'manual')
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-        <Header back={() => setStep('location')} />
+        <Header back={() => setStep('location')} onOpenSaved={openSaved} />
         <View className="px-5 flex-1">
           <Text className="font-display text-3xl text-text-primary dark:text-text-primary-dark mt-1.5 mb-2.5">Which state?</Text>
           <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-base leading-6 mb-3.5">Providers are licensed by state. Coverage varies — some states have far fewer.</Text>
@@ -402,7 +460,7 @@ export default function FindCareScreen() {
     const loadingCities = cityCounts.isLoading;
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-        <Header back={() => setStep('manual')} />
+        <Header back={() => setStep('manual')} onOpenSaved={openSaved} />
         <View className="px-5 flex-1">
           <Chip label={loc} onPress={() => setStep('manual')} />
           <Text className="font-display text-3xl text-text-primary dark:text-text-primary-dark mt-3 mb-2.5">Which city?</Text>
@@ -410,39 +468,49 @@ export default function FindCareScreen() {
           <View className="flex-row items-center gap-2.5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-4">
             <Search size={18} color={soft} /><TextInput placeholder={`Search cities in ${loc}`} placeholderTextColor={faint} value={cityQ} onChangeText={setCityQ} className="flex-1 font-sans text-base text-text-primary dark:text-text-primary-dark" />
           </View>
-          <ScrollView className="mt-3" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <Tap onPress={() => { setCity('all'); setStep('type'); }}>
-              <View className="flex-row items-center justify-between py-4 border-b border-border dark:border-border-dark">
-                <Text className="font-sans-medium text-text-primary dark:text-text-primary-dark text-base">All cities in {loc}</Text>
-                <View className="flex-row items-center gap-2.5">
-                  {stateTotal !== undefined ? <Text className="font-sans text-sm text-text-tertiary dark:text-text-tertiary-dark">{stateTotal.toLocaleString()}</Text> : null}
-                  <ChevronRight size={18} color={soft} />
+          {/* FlashList (like the state step): a state's city list can run 1000+ rows,
+              which an unvirtualized ScrollView map would mount all at once. */}
+          <FlashList
+            className="mt-3"
+            data={loadingCities ? [] : cities}
+            keyExtractor={(c) => c.city}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item: c }) => (
+              <Tap onPress={() => { setCity(c.city); setStep('type'); }}>
+                <View className="flex-row items-center justify-between py-4 border-b border-border dark:border-border-dark">
+                  <Text className="font-sans text-text-primary dark:text-text-primary-dark text-base">{c.city}</Text>
+                  <View className="flex-row items-center gap-2.5">
+                    <Text className="font-sans text-sm text-text-tertiary dark:text-text-tertiary-dark">{c.count.toLocaleString()}</Text>
+                    <ChevronRight size={18} color={soft} />
+                  </View>
                 </View>
-              </View>
-            </Tap>
-            {loadingCities ? (
-              <View className="pt-3">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} />)}</View>
-            ) : (
-              cities.map((c) => (
-                <Tap key={c.city} onPress={() => { setCity(c.city); setStep('type'); }}>
+              </Tap>
+            )}
+            ListHeaderComponent={
+              <View>
+                <Tap onPress={() => { setCity('all'); setStep('type'); }}>
                   <View className="flex-row items-center justify-between py-4 border-b border-border dark:border-border-dark">
-                    <Text className="font-sans text-text-primary dark:text-text-primary-dark text-base">{c.city}</Text>
+                    <Text className="font-sans-medium text-text-primary dark:text-text-primary-dark text-base">All cities in {loc}</Text>
                     <View className="flex-row items-center gap-2.5">
-                      <Text className="font-sans text-sm text-text-tertiary dark:text-text-tertiary-dark">{c.count.toLocaleString()}</Text>
+                      {stateTotal !== undefined ? <Text className="font-sans text-sm text-text-tertiary dark:text-text-tertiary-dark">{stateTotal.toLocaleString()}</Text> : null}
                       <ChevronRight size={18} color={soft} />
                     </View>
                   </View>
                 </Tap>
-              ))
-            )}
-            {!loadingCities && cityQ && !cities.length ? (
-              <View className="items-center py-8 px-4">
-                <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-sm text-center">No listed cities in {loc} match “{cityQ}”.</Text>
-                <Tap onPress={() => { setCity('all'); setStep('type'); }}><View className="py-3"><Text className="font-sans-bold text-base text-primary dark:text-primary-dark">Browse all of {loc}</Text></View></Tap>
+                {loadingCities ? <View className="pt-3">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} />)}</View> : null}
               </View>
-            ) : null}
-            <View className="h-4" />
-          </ScrollView>
+            }
+            ListEmptyComponent={
+              !loadingCities && cityQ ? (
+                <View className="items-center py-8 px-4">
+                  <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-sm text-center">No listed cities in {loc} match “{cityQ}”.</Text>
+                  <Tap onPress={() => { setCity('all'); setStep('type'); }}><View className="py-3"><Text className="font-sans-bold text-base text-primary dark:text-primary-dark">Browse all of {loc}</Text></View></Tap>
+                </View>
+              ) : null
+            }
+            ListFooterComponent={<View className="h-4" />}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       </SafeAreaView>
     );
@@ -454,7 +522,7 @@ export default function FindCareScreen() {
     const allTypesTotal = tc ? Object.values(tc).reduce((a, b) => a + b, 0) : undefined;
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-        <Header back={() => setStep(city ? 'city' : 'manual')} />
+        <Header back={() => setStep(city ? 'city' : 'manual')} onOpenSaved={openSaved} />
         <View className="px-5 flex-1">
           <View className="flex-row gap-2">
             {loc ? <Chip label={loc} onPress={() => setStep('manual')} /> : null}
@@ -499,14 +567,14 @@ export default function FindCareScreen() {
   if (step === 'outside')
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-        <Header back={() => setStep('manual')} />
+        <Header back={() => setStep('manual')} onOpenSaved={openSaved} />
         <ScrollView className="px-5" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
           <View className="items-center pt-3 pb-1"><Mascot state={MASCOT_CONTEXTUAL.findCareCta} size={132} /></View>
           <Text className="font-display text-3xl text-text-primary dark:text-text-primary-dark text-center mb-2.5">You're not in the U.S. right now</Text>
           <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-base leading-6 text-center mb-6">Our provider directory lists NPI-registered providers in the United States only, for now. You can still browse every U.S. provider — and we're working to reach your country soon.</Text>
           <Primary label="Browse U.S. providers" onPress={() => setStep('manual')} />
           <Tap onPress={() => setStep('manual')}><View className="py-3.5 items-center"><Text className="font-sans-bold text-base text-primary dark:text-primary-dark">I'm actually in the U.S.</Text></View></Tap>
-          <Tap onPress={() => setSheet('crisis')}>
+          <Tap accessibilityLabel="Help now" onPress={() => router.push('/crisis')}>
             <View className="flex-row items-center justify-center gap-1.5 mt-1 py-2">
               <LifeBuoy size={15} color={red} />
               <Text className="font-sans-medium text-sm text-error dark:text-error-dark">In crisis? See help options</Text>
@@ -667,7 +735,7 @@ export default function FindCareScreen() {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
-      <Header back={() => setStep('type')} />
+      <Header back={() => setStep('type')} onOpenSaved={openSaved} />
       {/* Fixed header (chips + search + sort) — kept OUT of the list so the search
           box does not lose focus on every keystroke as the list re-renders. */}
       <View className="px-5">{ListHeader}</View>
@@ -704,7 +772,6 @@ export default function FindCareScreen() {
       ) : null}
 
       <SortSheet visible={sheet === 'sort'} value={sort} geo={false} onSelect={(v) => { setSort(v); setSheet(null); }} onClose={() => setSheet(null)} />
-      <CrisisSheet visible={sheet === 'crisis'} onClose={() => setSheet(null)} />
     </SafeAreaView>
   );
 }
@@ -838,15 +905,52 @@ const ProfileStep = React.memo(function ProfileStep({ id, onBack, fireHaptic }: 
 /* ----------------------------- compare step ----------------------------- */
 const CompareStep = React.memo(function CompareStep({ ids, onBack, onRemove }: { ids: string[]; onBack: () => void; onRemove: (id: string) => void }) {
   const { colorScheme } = useColorScheme();
-  const ink = colorScheme === 'dark' ? colors.text.primary.dark : colors.text.primary.light;
-  const { data } = useQuery({
+  const isDark = colorScheme === 'dark';
+  const ink = isDark ? colors.text.primary.dark : colors.text.primary.light;
+  const teal = isDark ? colors.teal[400] : colors.teal[600];
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['providers', 'compare', ids],
-    queryFn: async () => (await Promise.all(ids.map((id) => getProviderById(id)))).filter((r): r is ProviderWithDetails => r != null),
+    queryFn: async () => {
+      // Settled per-id: one transient failure must not discard the columns that DID
+      // load. Only when nothing loads at all do we throw (→ retryable error state).
+      const settled = await Promise.allSettled(ids.map((id) => getProviderById(id)));
+      const rows = settled
+        .filter((r): r is PromiseFulfilledResult<ProviderWithDetails | null> => r.status === 'fulfilled')
+        .map((r) => r.value)
+        .filter((r): r is ProviderWithDetails => r != null);
+      if (rows.length === 0 && settled.some((r) => r.status === 'rejected')) {
+        throw new Error('Saved providers could not be loaded.');
+      }
+      return rows;
+    },
     enabled: ids.length > 0,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
   const C = ({ l, v }: { l: string; v: string }) => (
     <View className="py-2 border-t border-border dark:border-border-dark"><Text className="font-sans-bold text-[11px] text-text-tertiary dark:text-text-tertiary-dark uppercase tracking-wide">{l}</Text><Text className="font-sans text-sm text-text-primary dark:text-text-primary-dark mt-0.5">{v}</Text></View>
   );
+  if (isLoading)
+    return (
+      <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
+        <View className="flex-row items-center justify-between px-5 pt-1 pb-2"><Tap onPress={onBack}><View className="p-2.5"><ChevronLeft size={24} color={ink} /></View></Tap><Text className="font-sans-bold text-base text-text-primary dark:text-text-primary-dark">Compare</Text><View className="w-8" /></View>
+        <View className="flex-1 items-center justify-center"><Text className="font-sans text-text-secondary dark:text-text-secondary-dark">Loading…</Text></View>
+      </SafeAreaView>
+    );
+  // Load failure (connection/RPC) is recoverable — offer a retry instead of a
+  // permanently blank compare screen (mirrors ProfileStep's error state).
+  if (isError)
+    return (
+      <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
+        <View className="flex-row items-center justify-between px-5 pt-1 pb-2"><Tap onPress={onBack}><View className="p-2.5"><ChevronLeft size={24} color={ink} /></View></Tap><Text className="font-sans-bold text-base text-text-primary dark:text-text-primary-dark">Compare</Text><View className="w-8" /></View>
+        <View className="flex-1 items-center justify-center gap-4 px-8">
+          <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-center">These listings didn't load. Check your connection and try again.</Text>
+          <Tap activeScale={0.97} onPress={() => void refetch()}>
+            <View style={{ backgroundColor: teal }} className="rounded-[16px] px-6 py-3.5"><Text className="font-sans-bold text-white text-base">Try again</Text></View>
+          </Tap>
+        </View>
+      </SafeAreaView>
+    );
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       <View className="flex-row items-center justify-between px-5 pt-1 pb-2"><Tap onPress={onBack}><View className="p-2.5"><ChevronLeft size={24} color={ink} /></View></Tap><Text className="font-sans-bold text-base text-text-primary dark:text-text-primary-dark">Compare</Text><View className="w-8" /></View>
@@ -896,39 +1000,6 @@ function SortSheet({ visible, value, geo, onSelect, onClose }: { visible: boolea
                 </View>
               </Tap>
             ))}
-          </View>
-        </Animated.View>
-      </Pressable>
-    </Modal>
-  );
-}
-function CrisisSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colorScheme } = useColorScheme();
-  const ink = colorScheme === 'dark' ? colors.text.primary.dark : colors.text.primary.light;
-  const red = colorScheme === 'dark' ? colors.crisis.dark : colors.crisis.light;
-  return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
-        <Animated.View entering={SlideInDown.springify().damping(20).stiffness(300)} className="bg-background dark:bg-background-dark rounded-t-[32px] pt-3 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-          <View className="w-12 h-1.5 bg-border dark:bg-border-dark rounded-full self-center mb-4" />
-          <View className="flex-row items-center justify-between px-6 pb-4 border-b border-border/40 dark:border-border-dark/40">
-            <View className="w-10" />
-            <Text className="font-display text-xl text-text-primary dark:text-text-primary-dark">Help now</Text>
-            <Tap activeScale={0.8} onPress={onClose}><View className="p-2 bg-surface-active dark:bg-surface-active-dark rounded-full"><X size={20} color={ink} /></View></Tap>
-          </View>
-          <View className="px-6 pt-5 gap-4">
-            <Tap activeScale={0.96} onPress={() => { dial('988'); }}>
-              <View className="flex-row items-center gap-4 bg-surface dark:bg-surface-dark border border-error/20 dark:border-error-dark/20 rounded-[20px] p-5 shadow-sm">
-                <View className="w-12 h-12 rounded-full bg-error/10 dark:bg-error-dark/20 items-center justify-center"><Phone size={20} color={red} /></View>
-                <View className="flex-1"><Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-[17px]">Call 988</Text><Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-[14px] mt-0.5">Suicide & Crisis Lifeline</Text></View>
-              </View>
-            </Tap>
-            <Tap activeScale={0.96} onPress={() => { dial('tel:911'); }}>
-              <View className="flex-row items-center gap-4 bg-surface dark:bg-surface-dark border border-error/20 dark:border-error-dark/20 rounded-[20px] p-5 shadow-sm">
-                <View className="w-12 h-12 rounded-full bg-error/10 dark:bg-error-dark/20 items-center justify-center"><Phone size={20} color={red} /></View>
-                <View className="flex-1"><Text className="font-sans-bold text-text-primary dark:text-text-primary-dark text-[17px]">Call 911</Text><Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-[14px] mt-0.5">Emergency Services</Text></View>
-              </View>
-            </Tap>
           </View>
         </Animated.View>
       </Pressable>

@@ -8,6 +8,7 @@ import { asLocalCalendarDate } from '../dates';
 import { mergeMoments, MomentStore } from '../moment-store';
 import {
   MAX_LABELS,
+  MAX_STORED_MOMENTS,
   type Moment,
   type MomentValence,
   MomentValidationError,
@@ -244,6 +245,54 @@ describe('ingestRemote (pull/restore — survives reinstall)', () => {
       { id: 'remote-1', timestamp: '2026-06-01T09:00:00.000Z', valence: 5, labels: [], context: [], routedToSupport: false, source: 'today' },
     ]);
     expect(store.getAll().map((m) => m.id).sort()).toEqual(['remote-1', localMoment.id].sort());
+  });
+
+  it('drops invalid remote rows at the boundary, keeps valid ones, never throws — relaunch stays clean', () => {
+    // One malformed server row must not poison the blob and quarantine the whole
+    // store on the next launch.
+    const { deps } = makeDeps();
+    const store = new MomentStore(deps);
+    const valid: Moment = { id: 'r-ok', timestamp: '2026-06-10T09:00:00.000Z', valence: 4, labels: [], context: [], routedToSupport: false, source: 'today' };
+    const invalid = { id: 'r-bad', timestamp: '2026-06-10T10:00:00.000Z', valence: 99, labels: [], context: [], routedToSupport: false } as unknown as Moment;
+
+    expect(() => store.ingestRemote([invalid, valid])).not.toThrow();
+    expect(store.getAll().map((m) => m.id)).toEqual(['r-ok']);
+
+    const reopened = new MomentStore(deps); // same storage — the relaunch read
+    expect(reopened.lastAnomaly).toBeNull();
+    expect(reopened.getAll().map((m) => m.id)).toEqual(['r-ok']);
+  });
+});
+
+describe(`growth cap — most recent ${MAX_STORED_MOMENTS} moments kept on persist`, () => {
+  function remoteMoment(i: number): Moment {
+    return {
+      id: `r${i}`,
+      timestamp: new Date(Date.UTC(2025, 0, 1) + i * 60_000).toISOString(),
+      valence: 3,
+      labels: [],
+      context: [],
+      routedToSupport: false,
+      source: 'today',
+    };
+  }
+
+  it('appending beyond the cap trims the oldest and retains the newest', () => {
+    const { deps } = makeDeps(); // clock: 2026-06-17, newer than every remote moment
+    const store = new MomentStore(deps);
+    store.ingestRemote(Array.from({ length: MAX_STORED_MOMENTS }, (_, i) => remoteMoment(i)));
+    expect(store.getAll()).toHaveLength(MAX_STORED_MOMENTS);
+
+    const appended = store.append({ valence: 5 }); // one past the cap
+    const all = store.getAll();
+    expect(all).toHaveLength(MAX_STORED_MOMENTS);
+    expect(all.some((m) => m.id === 'r0')).toBe(false); // oldest dropped
+    expect(all.some((m) => m.id === appended.id)).toBe(true); // newest retained
+    expect(all[0]?.id).toBe('r1'); // next-oldest survives
+
+    const reopened = new MomentStore(deps); // persisted blob is capped and clean
+    expect(reopened.lastAnomaly).toBeNull();
+    expect(reopened.getAll()).toHaveLength(MAX_STORED_MOMENTS);
   });
 });
 

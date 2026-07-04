@@ -25,21 +25,22 @@ function entry(date: string): SleepEntry {
 
 const today = '2026-06-16' as LocalCalendarDate;
 
-describe('windowByDays (web-parity scoring window)', () => {
-  it('keeps entries on/after (today - days), inclusive of the cutoff day', () => {
-    // days=7 → cutoff = 2026-06-09 (matches web `cutoff = today - 7; date >= cutoff`)
+describe('windowByDays (shared "last N days" window)', () => {
+  it('days=7 keeps EXACTLY 7 calendar days: today-6 .. today, inclusive', () => {
+    // Cutoff = 2026-06-10. All "7 days" surfaces (dashboard, digest, export) agree
+    // on a true 7-day window — the old `today - 7` cutoff kept 8 calendar days.
     const entries = [
       entry('2026-06-16'),
-      entry('2026-06-09'), // exactly on the cutoff → kept
-      entry('2026-06-08'), // one day before cutoff → dropped
+      entry('2026-06-10'), // exactly on the cutoff (today-6) → kept
+      entry('2026-06-09'), // day 8 counting back → dropped
     ];
     const result = windowByDays(entries, today, 7).map((e) => e.date);
-    expect(result).toEqual(['2026-06-16', '2026-06-09']);
+    expect(result).toEqual(['2026-06-16', '2026-06-10']);
   });
 
-  it('does NOT behave like a fixed-count slice: a 15th old entry inside the window is kept', () => {
-    // 16 consecutive days, newest-first. A 7-day window keeps the most recent 8
-    // calendar days (today-7 .. today) regardless of total entry count.
+  it('does NOT behave like a fixed-count slice: every entry inside the window is kept', () => {
+    // 16 consecutive days, newest-first. A 7-day window keeps the most recent 7
+    // calendar days (today-6 .. today) regardless of total entry count.
     const dates = Array.from({ length: 16 }, (_, i) => {
       const d = 16 - i; // 16..1 → newest-first 2026-06-16 .. 2026-06-01
       return entry(`2026-06-${String(d).padStart(2, '0')}`);
@@ -53,7 +54,6 @@ describe('windowByDays (web-parity scoring window)', () => {
       '2026-06-12',
       '2026-06-11',
       '2026-06-10',
-      '2026-06-09',
     ]);
   });
 

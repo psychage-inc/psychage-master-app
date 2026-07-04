@@ -68,6 +68,9 @@ function back(state: ClarityFlowState): ClarityFlowState {
     case 'calculating':
     case 'results':
       // Back from the calculating interlude or results re-opens the last question.
+      // NOTE: this is NOT a new run — the container's once-per-run persist guard
+      // stays armed, so re-answering q20 here won't save a duplicate snapshot.
+      // Only RESET (Retake) starts a new run.
       return { ...state, step: 'question', index: CLARITY_QUESTION_COUNT - 1 };
   }
 }

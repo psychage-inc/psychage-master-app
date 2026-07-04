@@ -30,6 +30,7 @@ export {
   type LocalCalendarDate,
   type Storage,
   MAX_LABELS,
+  MAX_STORED_MOMENTS,
   NOTE_MAX_LENGTH,
   MomentValidationError,
 } from './types';

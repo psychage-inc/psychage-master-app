@@ -23,15 +23,20 @@ export function pearson(x: readonly number[], y: readonly number[]): number {
   const n = Math.min(x.length, y.length);
   if (n < 3) return 0;
 
-  const meanX = x.reduce((a, b) => a + b, 0) / n;
-  const meanY = y.reduce((a, b) => a + b, 0) / n;
+  // Truncate both series to the paired length BEFORE computing means — a mean over
+  // the full (longer) array would skew the coefficient for unequal-length inputs.
+  const xs = x.slice(0, n);
+  const ys = y.slice(0, n);
+
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = ys.reduce((a, b) => a + b, 0) / n;
 
   let sumXY = 0;
   let sumX2 = 0;
   let sumY2 = 0;
   for (let i = 0; i < n; i++) {
-    const dx = (x[i] ?? 0) - meanX;
-    const dy = (y[i] ?? 0) - meanY;
+    const dx = (xs[i] ?? 0) - meanX;
+    const dy = (ys[i] ?? 0) - meanY;
     sumXY += dx * dy;
     sumX2 += dx * dx;
     sumY2 += dy * dy;

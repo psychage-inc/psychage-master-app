@@ -1,33 +1,38 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { ToolScreen } from '@/components/ui/ToolScreen';
-import { toolUsageStore, type ToolId, TOOLS } from '@/lib/tool-usage-store';
+import { goBackOr } from '@/lib/nav';
+import { type ToolId, TOOLS, toolUsageStore } from '@/lib/tool-usage-store';
 
-// Placeholder tool route, wrapped in ToolScreen for the standard chrome (logo +
-// Help-now + profile + back). Renamed from `ToolScreen` to avoid shadowing the
-// imported component of the same name.
-export default function ToolPlaceholderRoute() {
+// Legacy `/tool/[id]` deep-link shim. The placeholder screen it used to render is
+// retired (PR-008): every ToolId now redirects to its real native flow (TOOLS[*].route,
+// aligned with features/compass/routes.ts). Kept as a route so old links keep working.
+// Unknown ids get a small not-found surface whose Back is cold-start-safe (goBackOr).
+export default function ToolRedirectRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const tool = id ? TOOLS[id as ToolId] : undefined;
 
+  // Arriving here counts as opening the tool (feeds the dormant-tool nudge),
+  // exactly like the home bento's open(). Effect, not render-time — the redirect
+  // component can mount more than once.
   useEffect(() => {
-    if (id && TOOLS[id as ToolId]) {
-      toolUsageStore.recordUse(id as ToolId);
-    }
-  }, [id]);
+    if (tool) toolUsageStore.recordUse(tool.id);
+  }, [tool]);
 
-  const tool = TOOLS[id as ToolId];
+  if (tool) {
+    return <Redirect href={tool.route as never} />;
+  }
 
   return (
-    <ToolScreen scroll="none" onBack={() => router.back()}>
+    <ToolScreen scroll="none" onBack={() => goBackOr('/compass')}>
       <View className="flex-1 items-center justify-center gap-6 p-6">
-        <Text variant="h1">{tool ? tool.name : 'Tool Not Found'}</Text>
+        <Text variant="h1">Tool Not Found</Text>
         <Text variant="body" className="text-center text-text-secondary dark:text-text-secondary-dark">
-          This is a placeholder for {tool?.name}. In the full app, the tool itself opens here. Opening
-          it is noted on your device, so Today can gently bring it back if it has been a while.
+          This link doesn’t match a tool in this version of the app. You can find every tool on the
+          Compass tab.
         </Text>
       </View>
     </ToolScreen>

@@ -220,7 +220,15 @@ export function NavigatorFlow({
           emergencyNumber={emergencyNumber}
           helplines={helplines}
           onFindCare={onFindCare}
-          onStartOver={() => dispatch({ type: 'RESET' })}
+          onStartOver={() => {
+            // "Start over" begins a NEW run — re-arm the once-per-run persist guard.
+            // The guard previously held for the component's lifetime, so a second
+            // completed run was never saved to history while ResultsScreen still
+            // claimed "Saved on this device", and "Remove this exploration" deleted
+            // the PREVIOUS run's record (PR-019).
+            savedRef.current = false;
+            dispatch({ type: 'RESET' });
+          }}
           onDownloadSummary={onDownloadSummary ? () => onDownloadSummary(summaryAreas) : undefined}
           onHome={onHome}
           onViewHistory={onViewHistory}

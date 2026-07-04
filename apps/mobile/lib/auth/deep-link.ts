@@ -13,7 +13,7 @@ import { getSupabaseAuthClient, isSupabaseConfigured } from '@/lib/supabase/clie
 // Two token shapes are handled: the PKCE `?code=…` (exchangeCodeForSession) and the
 // implicit `#access_token=…&refresh_token=…` fragment (setSession). Recovery links route
 // to reset-password with ?status=ready (or =expired on failure); confirmation links route
-// to verify-success.
+// to verify-success (or the /verify resend surface on failure).
 
 type AuthParams = {
   access_token?: string;
@@ -51,7 +51,8 @@ function extractAuthParams(url: string): AuthParams {
   return out as AuthParams;
 }
 
-async function handleUrl(url: string, router: Router): Promise<void> {
+// Exported for tests (the useAuthDeepLinks hook is the only runtime caller).
+export async function handleUrl(url: string, router: Router): Promise<void> {
   if (!isSupabaseConfigured()) return;
   const params = extractAuthParams(url);
   const isRecovery = params.type === 'recovery' || url.includes(RESET_PASSWORD_PATH);
@@ -61,7 +62,13 @@ async function handleUrl(url: string, router: Router): Promise<void> {
   if (!isRecovery && !isVerify && !params.code) return;
 
   const finishExpired = () => {
-    if (isRecovery) router.replace({ pathname: RESET_PASSWORD_PATH, params: { status: 'expired' } });
+    if (isRecovery) {
+      router.replace({ pathname: RESET_PASSWORD_PATH, params: { status: 'expired' } });
+    } else if (isVerify) {
+      // Expired/invalid verification link: land on the resend surface instead of
+      // failing silently. No token details are carried (SR-11: never log/forward them).
+      router.replace('/verify');
+    }
   };
 
   if (params.error) {
@@ -90,8 +97,9 @@ async function handleUrl(url: string, router: Router): Promise<void> {
       router.replace(VERIFY_SUCCESS_PATH);
     }
   } catch {
-    // The onAuthChange listener still reflects the real session; only recovery needs a
-    // dedicated dead-end so the user can request a fresh link.
+    // The onAuthChange listener still reflects the real session; recovery gets its
+    // dedicated expired dead-end, verification gets the /verify resend surface —
+    // either way the user can request a fresh link.
     finishExpired();
   }
 }

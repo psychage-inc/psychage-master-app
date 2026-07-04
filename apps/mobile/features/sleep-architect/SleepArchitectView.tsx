@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import type {
@@ -60,6 +60,24 @@ export function SleepArchitectView({
     setSettings(store.getSettings());
   }, [store]);
 
+  // "Log last night" must not blank-overwrite a night already logged today:
+  // saveToday replaces today's entry wholesale, so a mode:'new' form would
+  // silently destroy its notes / dream notes / ratings. When today's entry
+  // exists, open the form prefilled in EDIT mode (the editEntry path) instead.
+  const openLog = useCallback(() => {
+    const today = store.getToday();
+    setEditing(today ? { mode: 'edit', entry: today } : { mode: 'new' });
+  }, [store]);
+
+  // The export flow reads EVERY logged night. The tab surfaces cap at
+  // getRecent(120) to bound render cost, but "All nights" derives its window
+  // from this list — feeding it the capped set would silently drop older
+  // entries. Newest-first, matching the `entries` contract the tabs use.
+  const exportEntries = useMemo(
+    () => (editing?.mode === 'export' ? store.getAll().reverse() : []),
+    [editing, store],
+  );
+
   const handleSubmit = useCallback(
     (input: SleepEntryInput) => {
       try {
@@ -92,7 +110,7 @@ export function SleepArchitectView({
     (fullName: string, from: LocalCalendarDate, to: LocalCalendarDate) => {
       // All logged nights (LOCAL store); the pure builder filters to [from, to].
       // generatedAt is stamped here so the builder stays deterministic/testable.
-      onExport?.({ fullName, from, to, entries: store.getRecent(400), generatedAt: new Date() });
+      onExport?.({ fullName, from, to, entries: store.getAll(), generatedAt: new Date() });
       setEditing(null);
     },
     [onExport, store],
@@ -102,7 +120,7 @@ export function SleepArchitectView({
     <ToolScreen scroll="none" title={CT4_SLEEP.title} onBack={onClose}>
       {editing?.mode === 'export' ? (
         <SleepExportView
-          entries={entries}
+          entries={exportEntries}
           onGenerate={handleGenerate}
           onCancel={() => setEditing(null)}
         />
@@ -124,14 +142,14 @@ export function SleepArchitectView({
               <SleepHome
                 entries={entries}
                 settings={settings}
-                onLog={() => setEditing({ mode: 'new' })}
+                onLog={openLog}
                 onExport={() => setEditing({ mode: 'export' })}
               />
             ) : null}
             {tab === 'diary' ? (
               <SleepDiary
                 entries={entries}
-                onLog={() => setEditing({ mode: 'new' })}
+                onLog={openLog}
                 onSelect={(entry) => setEditing({ mode: 'edit', entry })}
               />
             ) : null}

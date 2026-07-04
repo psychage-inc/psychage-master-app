@@ -10,8 +10,9 @@ describe('toolForCategory', () => {
     expect(toolForCategory('sleep-body-connection').route).toBe('/tools/sleep');
     expect(toolForCategory('relationships-social').route).toBe('/tools/relationship-health');
     expect(toolForCategory('loneliness-connection').route).toBe('/tools/relationship-health');
-    expect(toolForCategory('depression-mood').route).toBe('/tools/mood-journal');
-    expect(toolForCategory('emotional-regulation').route).toBe('/tools/mood-journal');
+    // PR-023: Mood Journal folded into Moments — the CTA lands on Today ('/').
+    expect(toolForCategory('depression-mood').route).toBe('/');
+    expect(toolForCategory('emotional-regulation').route).toBe('/');
   });
 
   it('falls back to the Symptom Navigator for any unmapped category', () => {

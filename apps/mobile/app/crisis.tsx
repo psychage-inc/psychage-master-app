@@ -15,6 +15,7 @@ import {
 } from '@/features/crisis/region';
 import { storage } from '@/lib/adapters/storage';
 import { useReducedMotion } from '@/lib/motion';
+import { goBackOr } from '@/lib/nav';
 
 // S11 route. Plain full-screen surface OUTSIDE the tabs (its own Back, no GlobalHeader,
 // no tab bar). Slides in/out like every other route (slide_from_right, fade under
@@ -75,7 +76,7 @@ export default function CrisisScreen() {
         regionName={getRegionName(CRISIS_DATASET, region)}
         emergencyNumber={getEmergencyNumber(CRISIS_DATASET, region)}
         helplines={getHelplines(CRISIS_DATASET, region)}
-        onBack={() => router.back()}
+        onBack={() => goBackOr('/')}
         onChangeRegion={() => router.push('/crisis-region')}
         onUsePreciseLocation={onUsePreciseLocation}
         preciseBusy={preciseBusy}

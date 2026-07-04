@@ -53,6 +53,12 @@ export interface ClarityFlowProps {
   readonly onViewHistory: () => void;
   /** Persist the completed result; called once per completion. */
   readonly saveResult: (result: ClarityResult) => number | null;
+  /**
+   * Replace the just-saved snapshot when the SAME sitting re-completes after a
+   * BACK from results (keeps one row per run while matching the display).
+   * Optional so existing callers/tests keep the first-snapshot behavior.
+   */
+  readonly replaceLatestResult?: (result: ClarityResult) => void;
   /** Read recent snapshots for the History tab (called after saveResult). */
   readonly getHistory?: () => ClarityHistoryItem[];
   /** Whether to offer the "see past snapshots" link on the intro. */
@@ -65,6 +71,7 @@ export function ClarityFlow({
   onRecommend,
   onViewHistory,
   saveResult,
+  replaceLatestResult,
   getHistory,
   hasHistory = false,
 }: ClarityFlowProps) {
@@ -87,21 +94,29 @@ export function ClarityFlow({
     [result],
   );
 
-  // Persist exactly once per completion (on entering the calculating interlude), then
-  // snapshot history (which now includes this result) for the History tab.
+  // Persist exactly once per run (on entering the calculating interlude), then
+  // snapshot history (which now includes this result) for the History tab. The guard
+  // deliberately does NOT re-arm on BACK from calculating/results — walking back to
+  // q20 and re-answering it in the same sitting must not persist a SECOND snapshot.
+  // It re-arms only when an explicitly new run starts (Retake → RESET, below).
+  // A re-answered run in the same sitting REPLACES the just-saved snapshot instead
+  // (one row per run, and the persisted record always matches the dashboard the
+  // user is looking at — second-pass review of PR-024).
   const savedForResults = useRef(false);
   const [history, setHistory] = useState<ClarityHistoryItem[]>([]);
   useEffect(() => {
-    if (state.step !== 'calculating' && state.step !== 'results') {
-      savedForResults.current = false;
-      return;
-    }
-    if (result && !savedForResults.current) {
+    if (state.step !== 'calculating' && state.step !== 'results') return;
+    if (!result) return;
+    if (!savedForResults.current) {
       savedForResults.current = true;
       saveResult(result);
-      setHistory(getHistory ? getHistory() : []);
+    } else if (replaceLatestResult) {
+      replaceLatestResult(result);
+    } else {
+      return; // no replace seam injected — keep the first snapshot (old behavior)
     }
-  }, [state.step, result, saveResult, getHistory]);
+    setHistory(getHistory ? getHistory() : []);
+  }, [state.step, result, saveResult, replaceLatestResult, getHistory]);
 
   // The 2s calculating delay (web parity). The timer is the only side effect; the reducer
   // just models 'calculating' → 'results'.
@@ -120,7 +135,11 @@ export function ClarityFlow({
           recommendations={recommendations}
           history={history}
           onRecommend={onRecommend}
-          onRetake={() => dispatch({ type: 'RESET' })}
+          onRetake={() => {
+            // Explicit new run: re-arm the once-per-run persist guard, then reset.
+            savedForResults.current = false;
+            dispatch({ type: 'RESET' });
+          }}
         />
       </ToolScreen>
     );

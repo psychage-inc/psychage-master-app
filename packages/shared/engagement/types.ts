@@ -134,6 +134,14 @@ export const MAX_LABELS = 3;
 export const STORED_MAX_LABELS = 12;
 /** Maximum note length, in UTF-16 code units (absorbs the Mood Journal's 280-cap notes). */
 export const NOTE_MAX_LENGTH = 280;
+/**
+ * Growth cap on the persisted store: the most recent MAX_STORED_MOMENTS moments are
+ * kept on persist; older ones beyond the cap are dropped (oldest first). Generous —
+ * this is the primary engagement record (~5 captures/day for over a year) — but
+ * bounded, because every append rewrites and re-sorts the whole blob (the navigator
+ * caps at 50, clarity at 100).
+ */
+export const MAX_STORED_MOMENTS = 2000;
 
 /**
  * Key-value persistence seam. Structurally identical to

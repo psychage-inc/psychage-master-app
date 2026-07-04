@@ -48,6 +48,17 @@ describe('ClarityJournalStore — daily check-in', () => {
       ClarityJournalValidationError,
     );
   });
+
+  it('rejects non-finite sleepHours at write (loader parity — NaN dropped the check-in on reload)', () => {
+    const { store } = makeStore();
+    expect(() => store.saveDailyCheckIn({ ...dailyInput, sleepHours: Number.NaN })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(() =>
+      store.saveDailyCheckIn({ ...dailyInput, sleepHours: Number.POSITIVE_INFINITY }),
+    ).toThrow(ClarityJournalValidationError);
+    expect(store.getRecentDailyCheckIns(10)).toHaveLength(0);
+  });
 });
 
 describe('ClarityJournalStore — screening & reflection (one per week)', () => {
@@ -58,6 +69,46 @@ describe('ClarityJournalStore — screening & reflection (one per week)', () => 
     expect(s2.id).toBe(s1.id); // same week
     expect(store.getRecentScreenings(10)).toHaveLength(1);
     expect(store.getScreening(s1.weekStart)?.phq2).toEqual([3, 3]);
+  });
+
+  it('rejects out-of-range / non-integer screening pairs at write (loader parity)', () => {
+    // Same bounds as migrate.ts validScreening: phq2/gad2 0..3, pss4 0..4, who5 0..5.
+    // The loader drops a bad screening on reload — the write must fail loud instead.
+    const { store } = makeStore();
+    const ok = { phq2: [0, 0], gad2: [0, 0], pss4: [0, 0], who5: [0, 0] } as const;
+    expect(() => store.saveScreening({ ...ok, phq2: [4 as 3, 0] })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(() => store.saveScreening({ ...ok, gad2: [-1 as 0, 0] })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(() => store.saveScreening({ ...ok, pss4: [5 as 4, 0] })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(() => store.saveScreening({ ...ok, who5: [6 as 5, 0] })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(() => store.saveScreening({ ...ok, phq2: [Number.NaN as 0, 0] })).toThrow(
+      ClarityJournalValidationError,
+    );
+    expect(store.getRecentScreenings(10)).toHaveLength(0);
+  });
+
+  it('a rejected screening write never poisons the blob — reload keeps the prior screening', () => {
+    const map = new Map<string, string>();
+    const storage = { get: (k: string) => map.get(k) ?? null, set: (k: string, v: string) => void map.set(k, v) };
+    let n = 0;
+    const deps = { storage, now: () => new Date('2026-06-16T12:00:00.000Z'), generateId: () => `s-${++n}` };
+    const store = new ClarityJournalStore(deps);
+    store.saveScreening({ phq2: [1, 1], gad2: [0, 0], pss4: [2, 2], who5: [4, 4] });
+    expect(() =>
+      store.saveScreening({ phq2: [9 as 3, 0], gad2: [0, 0], pss4: [0, 0], who5: [0, 0] }),
+    ).toThrow(ClarityJournalValidationError);
+
+    const reopened = new ClarityJournalStore(deps);
+    expect(reopened.lastAnomaly).toBeNull();
+    expect(reopened.getRecentScreenings(10)).toHaveLength(1);
+    expect(reopened.getRecentScreenings(1)[0]?.phq2).toEqual([1, 1]);
   });
 });
 

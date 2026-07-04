@@ -15,6 +15,14 @@ describe('pearson', () => {
     expect(pearson([1, 2], [1, 2])).toBe(0);
     expect(pearson([5, 5, 5], [1, 2, 3])).toBe(0);
   });
+
+  it('truncates both series to the paired length — trailing extras cannot skew the mean', () => {
+    // The old implementation averaged over the FULL longer array while iterating
+    // only n pairs, producing a wrong coefficient for unequal-length inputs.
+    expect(pearson([1, 2, 3, 1000], [1, 2, 3])).toBe(pearson([1, 2, 3], [1, 2, 3]));
+    expect(pearson([1, 2, 3, 1000], [1, 2, 3])).toBeCloseTo(1, 10);
+    expect(pearson([1, 2, 3], [2, 4, 6, -500])).toBeCloseTo(1, 10);
+  });
 });
 
 describe('classifyCorrelation', () => {

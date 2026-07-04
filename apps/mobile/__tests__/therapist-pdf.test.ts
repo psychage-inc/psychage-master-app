@@ -9,6 +9,7 @@ import {
   windowForDays,
 } from '@/features/therapist/pdf/build-html';
 import { generateAndShare, type PdfPrinter } from '@/features/therapist/pdf/printer';
+import { syncLinkedProvider } from '@/features/therapist/use-provider';
 import { THERAPIST_COPY } from '@/features/therapist/copy';
 
 // The C-PDF is a PRINT artifact, generated LOCALLY. These prove it is grayscale-safe
@@ -142,6 +143,34 @@ describe('buildTherapistPdfHtml', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;');
   });
+
+  it('carries no "Prepared for" row when no provider is linked', () => {
+    expect(htmlFor()).not.toContain('Prepared for');
+  });
+
+  it('stamps the linked provider as "Prepared for" (name + contact, escaped)', () => {
+    const html = buildTherapistPdfHtml({
+      fullName: 'Alex Rivers',
+      from: FROM,
+      to: TO,
+      entries: ENTRIES,
+      provider: { name: '<b>Dr. Sam & Co</b>', contact: 'sam@clinic.test' },
+    });
+    expect(html).toContain('<dt>Prepared for</dt>');
+    expect(html).not.toContain('<b>Dr. Sam & Co</b>'); // never raw markup
+    expect(html).toContain('&lt;b&gt;Dr. Sam &amp; Co&lt;/b&gt; · sam@clinic.test');
+  });
+
+  it('defaults to the session-linked provider (S39 mirror) when none is passed', () => {
+    syncLinkedProvider({ name: 'Dr. Osei' });
+    try {
+      expect(htmlFor()).toContain('<dt>Prepared for</dt>');
+      expect(htmlFor()).toContain('<dd>Dr. Osei</dd>');
+    } finally {
+      syncLinkedProvider(null);
+    }
+    expect(htmlFor()).not.toContain('Prepared for');
+  });
 });
 
 describe('generateAndShare', () => {
@@ -157,7 +186,34 @@ describe('generateAndShare', () => {
       },
     };
 
-    await generateAndShare('<html></html>', printer);
+    const result = await generateAndShare('<html></html>', printer);
+    expect(result).toEqual({ ok: true });
     expect(calls).toEqual(['print', 'share:file:///tmp/summary.pdf']);
+  });
+
+  it('resolves { ok: false } (never rejects) when generation fails — share is skipped', async () => {
+    const calls: string[] = [];
+    const printer: PdfPrinter = {
+      printToFile: async () => {
+        throw new Error('disk full');
+      },
+      share: async (uri) => {
+        calls.push(`share:${uri}`);
+      },
+    };
+
+    await expect(generateAndShare('<html></html>', printer)).resolves.toEqual({ ok: false });
+    expect(calls).toEqual([]); // never shares a file that was not generated
+  });
+
+  it('resolves { ok: false } (never rejects) when the share sheet fails', async () => {
+    const printer: PdfPrinter = {
+      printToFile: async () => 'file:///tmp/summary.pdf',
+      share: async () => {
+        throw new Error('sharing-unavailable');
+      },
+    };
+
+    await expect(generateAndShare('<html></html>', printer)).resolves.toEqual({ ok: false });
   });
 });

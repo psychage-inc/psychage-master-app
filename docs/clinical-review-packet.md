@@ -45,3 +45,28 @@
 ---
 
 *Compiled from a read-only sweep of the mobile copy surfaces. File paths point at where each string lives. Counts are approximate where a surface bundles many strings.*
+
+
+---
+
+## C. Audit addendum — PR #191 (2026-07-03 production-readiness run)
+
+New or changed user-facing copy introduced by the audit's fixes. Each was flagged `NEEDS_CLINICAL_REVIEW` in AUDIT_LOG.md. All strings are exact quotes from the code; person-first framing checked mechanically (SR-3 hook passed), but tone/accuracy is this review's call.
+
+| # | Surface | File | Exact copy | Why it exists |
+|---|---------|------|-----------|---------------|
+| C1 | **Isolation safety modal** (relationship results — fires when ONLY the social-isolation alert triggers; DV keeps precedence) | `features/relationship-health/copy.ts` | Title: "Connection can grow again" · Body: "Some of your responses suggest you may be feeling disconnected from the people around you. Feeling this way is more common than it seems, and support is available." · Resource: "988 Suicide & Crisis Lifeline" / "Call or text 988 — free, 24/7, confidential" | PR-029: the shared modal previously showed the **DV hotline** as the first resource to lonely, no-partner users. Is 988 the right primary resource for the isolation-only case, and is the "suggest you may be feeling" framing acceptable? |
+| C2 | **Empty relationship run notice** (every question skipped) | `features/relationship-health/RelationshipFlow.tsx` | "Nothing to reflect on yet" / "Every question was skipped, so there are no responses to summarize. You can try again whenever it feels right." | PR-020: skip-all runs previously produced a fabricated score; now they land here instead of results. |
+| C3 | **Clarity Score Guide dimension list** | `features/clarity/components/tabs/ScoreGuideTab.tsx` | Now names: "Emotional, Overall Wellbeing, Social, Stress Load, Daily Functioning" | PR-036: previous copy named a nonexistent set ("…cognitive, physical…"). Factual correction to match the actual instrument dimensions — verify naming matches how you want dimensions described to users. |
+| C4 | **Clarity dimension tool-links** (5 tier blocks) | `features/clarity/results-content.ts` | "Capture a Moment when a feeling shows up" · "Capture Moments to notice recurring thought patterns" · "Capture Moments to notice your social patterns" · "Capture Moments when stress spikes to see what drives it" · "Capture Moments to track how days are going" | PR-023: previous labels advertised a "Clarity Journal" tool that doesn't exist on mobile and linked to a 404. Relabeled to Moments (the real capture surface). |
+| C5 | **Article next-step CTA** (depression-mood + emotional-regulation categories) | `features/content/related-tools.ts` | Label unchanged ("Notice what comes up"); sub-label "Mood Journal" → "Moments"; now routes to Today. | Same PR-023 rename. |
+| C6 | **WebView gated surfaces** (Library, Library search, Med Tracker) | `features/webview/copy.ts` | "Not available here yet" / "This section is coming to the app soon. For now, you can find it on psychage.com." | PR-057: replaces a sign-in bounce loop. |
+| C7 | **Sleep log validation error** (equal bed / out-of-bed times) | `features/sleep-architect/copy.ts` | "Getting into bed and out of bed show the same time — please set two different times." | PR-027: such entries previously became a phantom 24-hour night. |
+| C8 | **Export/share failure alerts** (all PDF + record-export surfaces) | `features/therapist/pdf/printer.ts`, `app/settings/privacy.tsx` | "Couldn't create the PDF right now" / "Please try again in a moment." · "Couldn't export your record right now" | PR-025/067: failures were silent no-ops. |
+| C9 | **Hotline fallback alerts** (devices with no phone/SMS handler, e.g. Wi-Fi iPads) | `features/relationship-health/components/SafetyAlert.tsx`, `features/clarity/components/open-action.ts` | "Calling isn't available on this device. From any phone: <number line>" / "Texting isn't available on this device. From any phone: <text line>" / "You can still reach it at <target> from another phone or device." | PR-026: crisis buttons previously did nothing on such devices. Safety-surface copy — priority review. |
+| C10 | **MindMate status strip** | `features/mindmate/components/MindMateView.tsx` | "Online" ↔ "Offline" (was hardcoded "Online" even when disconnected) | PR-070: honesty fix on a mental-health chat surface. |
+| C11 | **Legacy tool-link shim** (old /tool/* deep links, unknown id) | `app/tool/[id].tsx` | "Tool Not Found" / "This link doesn't match a tool in this version of the app. You can find every tool on the Compass tab." | PR-008: replaces the placeholder screen. |
+| C12 | **Account-migration screen** (deep-link-only surface) | `app/(auth)/migrate.tsx` | Intro + explicit "Start" button (CT4-marked inline placeholder) | PR-058: migration previously auto-ran on a bare deep link with no consent step or exit. |
+| C13 | **Therapist PDF meta row** | `features/therapist/pdf/build-html.ts` | "Prepared for: <provider name · contact>" | PR-090: wires the S39 add-provider form's collected data into the export it was collected for. |
+
+**Also for the SR-12 pass (behavior, not copy):** crisis screen exits are now cold-start-safe (`goBackOr`), the Find tab's crisis "Help" pill navigates to the standalone /crisis route instead of an in-screen sheet, and Navigator/MindMate crisis surfaces now resolve region via expo-localization (same chain as /crisis). Diffs in PR #191, commits bae3730 / 7e980f9 / c134a81.

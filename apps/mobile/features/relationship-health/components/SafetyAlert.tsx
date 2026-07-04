@@ -1,6 +1,6 @@
 import { ExternalLink, MessageCircle, Phone } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Linking, Modal, Pressable, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -18,6 +18,20 @@ export interface SafetyAlertProps {
   readonly visible: boolean;
   readonly onDismiss: () => void;
   readonly onCrisis: () => void;
+  /**
+   * Which alert fired (PR-029). 'dv' keeps the DV hotline resources; 'isolation'
+   * (only the social-isolation trigger, no DV) swaps in general support copy +
+   * the 988 lifeline — the DV hotline is the wrong first resource for a lonely,
+   * no-partner user. When both fire, DV takes precedence.
+   */
+  readonly variant?: 'dv' | 'isolation';
+}
+
+// A device without a tel:/sms: handler (e.g. a Wi-Fi-only tablet) REJECTS openURL —
+// a crisis resource must never silently no-op. Fall back to showing the resource and
+// its number/text target in an alert, so the person can still reach it from a phone.
+function openResourceOrShow(url: string, title: string, fallbackBody: string): void {
+  Linking.openURL(url).catch(() => Alert.alert(title, fallbackBody));
 }
 
 function ResourceRow({
@@ -51,33 +65,63 @@ function ResourceRow({
   );
 }
 
-export function SafetyAlert({ visible, onDismiss, onCrisis }: SafetyAlertProps) {
+export function SafetyAlert({ visible, onDismiss, onCrisis, variant = 'dv' }: SafetyAlertProps) {
   const t = CT4_RELATIONSHIP.safety;
+  const isolation = variant === 'isolation';
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       {/* @design-purpose: modal backdrop scrim to focus the safety dialog — solid dim, no blur/glassmorphism */}
       <View className="flex-1 items-center justify-center bg-black/60 px-6">
         <View className="w-full max-w-md rounded-2xl border border-border bg-surface p-5 dark:border-border-dark dark:bg-surface-dark">
           <Text variant="h2" className="mb-2" accessibilityRole="header">
-            {t.title}
+            {isolation ? t.isolationTitle : t.title}
           </Text>
           <Text variant="caption" className="mb-4 text-text-secondary dark:text-text-secondary-dark leading-5">
-            {t.body}
+            {isolation ? t.isolationBody : t.body}
           </Text>
 
           <View className="gap-2">
-            <ResourceRow
-              icon={<Phone size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
-              title={t.dvTitle}
-              sub={t.dvSub}
-              onPress={() => Linking.openURL(t.dvTel)}
-            />
-            <ResourceRow
-              icon={<MessageCircle size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
-              title={t.textTitle}
-              sub={t.textSub}
-              onPress={() => Linking.openURL(t.textSms)}
-            />
+            {isolation ? (
+              <ResourceRow
+                icon={<Phone size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
+                title={t.lifelineTitle}
+                sub={t.lifelineSub}
+                onPress={() =>
+                  openResourceOrShow(
+                    t.lifelineTel,
+                    t.lifelineTitle,
+                    `Calling isn't available on this device. From any phone: ${t.lifelineSub}`,
+                  )
+                }
+              />
+            ) : (
+              <>
+                <ResourceRow
+                  icon={<Phone size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
+                  title={t.dvTitle}
+                  sub={t.dvSub}
+                  onPress={() =>
+                    openResourceOrShow(
+                      t.dvTel,
+                      t.dvTitle,
+                      `Calling isn't available on this device. From any phone: ${t.dvSub}`,
+                    )
+                  }
+                />
+                <ResourceRow
+                  icon={<MessageCircle size={16} color={colors.primary.default.light} strokeWidth={1.75} />}
+                  title={t.textTitle}
+                  sub={t.textSub}
+                  onPress={() =>
+                    openResourceOrShow(
+                      t.textSms,
+                      t.textTitle,
+                      `Texting isn't available on this device. From any phone: ${t.textSub}`,
+                    )
+                  }
+                />
+              </>
+            )}
             <ResourceRow
               icon={<ExternalLink size={16} color={colors.text.secondary.light} strokeWidth={1.75} />}
               title={t.moreTitle}

@@ -44,12 +44,14 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * Minutes between two HH:MM times, wrapping through midnight when end ≤ start.
+ * Minutes between two HH:MM times, wrapping through midnight when end < start.
+ * Equal start/end yields 0 — NOT a full 24h wrap: identical times describe a
+ * zero-length interval, and treating them as 1440 minted a phantom full-day night.
  */
 export function minutesBetween(start: string, end: string): number {
   const s = parseTime(start);
   const e = parseTime(end);
-  if (e > s) return e - s;
+  if (e >= s) return e - s;
   return 1440 - s + e;
 }
 
@@ -183,20 +185,22 @@ export function calculateSleepScore(
 // ─── Scoring window (web parity) ─────────────────────────────────────────────
 
 /**
- * Entries falling within the last `days` calendar days relative to `today`
- * (inclusive of the cutoff day). Mirrors the web Sleep Architect's `useSleepScore`
- * window — web computes `cutoff = today - days` and keeps `entry.date >= cutoff`
- * (`src/components/tools/SleepArchitect/hooks/useSleepScore.ts:15-20`). `today` is
- * injected (no hidden clock) and differencing goes through `dayNumber`, so the
- * window is timezone-proof. Replaces the prior fixed "newest 14 entries" slice,
- * which scored a different set than web for the same logged data.
+ * Entries falling within the last `days` calendar days relative to `today`,
+ * inclusive of `today` itself: `days = 7` keeps exactly the 7 calendar days
+ * `today-6 .. today`. This is the shared "last N days" window every surface
+ * (dashboard, weekly digest, export) agrees on — the previous `today - days`
+ * cutoff kept 8 calendar days for "7 days", disagreeing with the digest/export
+ * windows (`>= today - 6`). `today` is injected (no hidden clock) and differencing
+ * goes through `dayNumber`, so the window is timezone-proof. Replaces the prior
+ * fixed "newest 14 entries" slice, which scored a different set than web for the
+ * same logged data.
  */
 export function windowByDays(
   entries: readonly SleepEntry[],
   today: LocalCalendarDate,
   days: number,
 ): SleepEntry[] {
-  const cutoff = dayNumber(today) - days;
+  const cutoff = dayNumber(today) - days + 1;
   return entries.filter((e) => dayNumber(e.date) >= cutoff);
 }
 

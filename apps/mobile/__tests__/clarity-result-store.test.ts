@@ -68,6 +68,23 @@ describe('save / getRecent', () => {
     expect(store.getRecent(10).map((s) => s.composite)).toEqual([80, 50]);
   });
 
+  it('replaceLatest swaps the most recent snapshot in place (same id, one row per run)', () => {
+    const { store } = setup();
+    store.save(RESULT);
+    const replaced = store.replaceLatest({ ...RESULT, totalScore: 42, tier: 'struggling' });
+    expect(replaced.id).toBe('id-1'); // same run, same row
+    expect(store.count).toBe(1);
+    expect(store.getRecent(1)[0]?.composite).toBe(42);
+    expect(store.getRecent(1)[0]?.tier).toBe('struggling');
+  });
+
+  it('replaceLatest on an empty store falls back to a plain save', () => {
+    const { store } = setup();
+    const snap = store.replaceLatest(RESULT);
+    expect(store.count).toBe(1);
+    expect(snap.composite).toBe(64);
+  });
+
   it('getRecent(n<=0) returns []', () => {
     const { store } = setup();
     store.save(RESULT);

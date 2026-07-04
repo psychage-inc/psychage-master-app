@@ -1,10 +1,17 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
+// The status strip reads real connectivity; NetInfo has no native binding under
+// jest, so pin the seam (same pattern as WebViewSurface.test).
+jest.mock('@/features/offline/useIsOnline', () => ({ useIsOnline: jest.fn(() => true) }));
+
 import { MindMateView } from '@/features/mindmate/components/MindMateView';
 import { MindMateUnavailableError } from '@/features/mindmate/errors';
 import type { sendMessage } from '@/features/mindmate/mindmate-service';
+import { useIsOnline } from '@/features/offline/useIsOnline';
 
 import { renderWithProviders } from './_helpers';
+
+const onlineMock = useIsOnline as unknown as jest.Mock;
 
 // A sendImpl that fails as if no session exists (NO_SESSION) — drives the sign-in
 // state. Throws on call; the hook's `for await` sits inside its try, so the throw
@@ -14,6 +21,25 @@ const failNoSession = (() => {
 }) as unknown as typeof sendMessage;
 
 describe('MindMateView', () => {
+  beforeEach(() => {
+    onlineMock.mockReturnValue(true);
+  });
+
+  it('status strip shows Online while connected', () => {
+    const noop = jest.fn() as unknown as typeof sendMessage;
+    renderWithProviders(<MindMateView region="US" sendImpl={noop} />, { haptics: true });
+    expect(screen.getByText('Online')).toBeTruthy();
+    expect(screen.queryByText('Offline')).toBeNull();
+  });
+
+  it('status strip shows a calm Offline when the device is disconnected', () => {
+    onlineMock.mockReturnValue(false);
+    const noop = jest.fn() as unknown as typeof sendMessage;
+    renderWithProviders(<MindMateView region="US" sendImpl={noop} />, { haptics: true });
+    expect(screen.getByText('Offline')).toBeTruthy();
+    expect(screen.queryByText('Online')).toBeNull();
+  });
+
   it('renders the mascot-fronted intro before any message', () => {
     const noop = jest.fn() as unknown as typeof sendMessage;
     renderWithProviders(<MindMateView region="US" sendImpl={noop} />, { haptics: true });

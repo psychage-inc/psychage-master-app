@@ -1,7 +1,9 @@
 // Clarity Score — contextual results copy. Ported from psychage-v2
 // src/components/tools/ClarityScore/data/results-content.ts. Two mobile adaptations:
-//   1. Tool-link paths remapped to mobile routes (/tools/clarity-journal→
-//      /tools/mood-journal, /tools/sleep-architect→/tools/sleep).
+//   1. Tool-link paths remapped to mobile routes. The web's /tools/clarity-journal
+//      has no mobile counterpart (Mood Journal folded into Moments, PR #173) — those
+//      links go to Today ('/'), where the Moment capture lives (PR-023). Sleep:
+//      /tools/sleep-architect→/tools/sleep.
 //   2. ONE phrase reframed for the SR-3 constitutional hook: the web's balanced-tier
 //      "You have a solid foundation to build on." → "There's a solid foundation to
 //      build on." ("you have" is a forbidden diagnostic seed). Meaning preserved;
@@ -125,7 +127,7 @@ export const DIMENSION_CONTENT: Record<DomainKey, Record<ScoreTier, DimensionTie
         'Explore journaling to track emotional patterns over time',
         'Practice naming and sitting with emotions when they arise',
       ],
-      toolLink: { label: 'Try the Clarity Journal for daily emotional tracking', path: '/tools/mood-journal' },
+      toolLink: { label: 'Capture a Moment when a feeling shows up', path: '/' },
       context:
         'Your PHQ-4 scores are in the mild range. Occasional emotional dips are common — tracking the pattern over time helps you catch early signals.',
     },
@@ -139,7 +141,7 @@ export const DIMENSION_CONTENT: Record<DomainKey, Record<ScoreTier, DimensionTie
         'Consider trying guided breathing exercises daily',
         'Speaking with a counselor about emotional regulation tools may help',
       ],
-      toolLink: { label: 'Use the Clarity Journal to identify unhelpful thought patterns', path: '/tools/mood-journal' },
+      toolLink: { label: 'Capture Moments to notice recurring thought patterns', path: '/' },
       context:
         'Moderate PHQ-4 scores suggest meaningful emotional difficulty. These symptoms often respond well to structured interventions.',
     },
@@ -267,7 +269,7 @@ export const DIMENSION_CONTENT: Record<DomainKey, Record<ScoreTier, DimensionTie
         'Consider joining a support group or online community related to your interests',
         'Try reaching out to one trusted person this week',
       ],
-      toolLink: { label: 'Track your social patterns in the Clarity Journal', path: '/tools/mood-journal' },
+      toolLink: { label: 'Capture Moments to notice your social patterns', path: '/' },
       context:
         'UCLA-3 scores in this range indicate genuine feelings of disconnection. Social isolation is a modifiable risk factor — small changes can help.',
     },
@@ -332,7 +334,7 @@ export const DIMENSION_CONTENT: Record<DomainKey, Record<ScoreTier, DimensionTie
         'Consider speaking with a counselor about stress management strategies',
         'Break overwhelming tasks into smaller, more manageable steps',
       ],
-      toolLink: { label: 'Use the Clarity Journal to challenge stress-driven thinking', path: '/tools/mood-journal' },
+      toolLink: { label: 'Capture Moments when stress spikes to see what drives it', path: '/' },
       context:
         'Elevated PSS-4 scores mean stress is starting to feel unmanageable. Stress management interventions are among the most effective in mental health.',
     },
@@ -383,7 +385,7 @@ export const DIMENSION_CONTENT: Record<DomainKey, Record<ScoreTier, DimensionTie
         'Build buffer time into your schedule for harder days',
         'Notice which responsibilities feel most draining and explore why',
       ],
-      toolLink: { label: 'Use the Clarity Journal to track daily functioning patterns', path: '/tools/mood-journal' },
+      toolLink: { label: 'Capture Moments to track how days are going', path: '/' },
       context:
         'Having harder days now and then is common. Tracking them can reveal whether a specific area is driving the difficulty.',
     },

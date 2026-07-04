@@ -34,6 +34,28 @@ import type {
 
 const PAGE_SIZE = 20;
 
+// A hung TCP connection would otherwise stall the directory UI indefinitely —
+// TanStack Query's retries only engage once the promise settles. Rejecting with an
+// Error routes the stall into the normal retry/error path. Local helper, no deps.
+const REQUEST_TIMEOUT_MS = 15_000;
+
+/** Reject `promise` with an Error if it hasn't settled within `ms`. */
+export function withTimeout<T>(promise: PromiseLike<T>, ms: number = REQUEST_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 // Embedded join for direct provider queries (PostgREST resource embedding).
 const PROVIDER_SELECT = `
   *,
@@ -125,26 +147,28 @@ async function searchViaRPC(
   perPage: number,
 ): Promise<ProviderCardSearchResult | null> {
   const offset = (page - 1) * perPage;
-  const { data, error } = await client.rpc('search_providers_v3', {
-    p_query: params.query || null,
-    p_provider_type_ids: params.provider_type_ids?.length ? params.provider_type_ids : null,
-    p_specialty_slugs: params.specialty_slugs?.length ? params.specialty_slugs : null,
-    p_language_ids: params.language_ids?.length ? params.language_ids : null,
-    p_competency_ids: params.competency_ids?.length ? params.competency_ids : null,
-    p_insurance_plan_ids: params.insurance_plan_ids?.length ? params.insurance_plan_ids : null,
-    p_telehealth: params.telehealth ?? null,
-    p_in_person: params.in_person ?? null,
-    p_accepting: params.accepting_patients ?? null,
-    p_state: params.state || null,
-    p_city: params.city || null,
-    p_verification_status: params.verification_status || null,
-    p_sort: params.sort_by === 'name' ? 'name' : 'relevance',
-    p_limit: perPage,
-    p_offset: offset,
-    p_latitude: params.latitude ?? null,
-    p_longitude: params.longitude ?? null,
-    p_radius_miles: params.radius_miles ?? null,
-  });
+  const { data, error } = await withTimeout(
+    client.rpc('search_providers_v3', {
+      p_query: params.query || null,
+      p_provider_type_ids: params.provider_type_ids?.length ? params.provider_type_ids : null,
+      p_specialty_slugs: params.specialty_slugs?.length ? params.specialty_slugs : null,
+      p_language_ids: params.language_ids?.length ? params.language_ids : null,
+      p_competency_ids: params.competency_ids?.length ? params.competency_ids : null,
+      p_insurance_plan_ids: params.insurance_plan_ids?.length ? params.insurance_plan_ids : null,
+      p_telehealth: params.telehealth ?? null,
+      p_in_person: params.in_person ?? null,
+      p_accepting: params.accepting_patients ?? null,
+      p_state: params.state || null,
+      p_city: params.city || null,
+      p_verification_status: params.verification_status || null,
+      p_sort: params.sort_by === 'name' ? 'name' : 'relevance',
+      p_limit: perPage,
+      p_offset: offset,
+      p_latitude: params.latitude ?? null,
+      p_longitude: params.longitude ?? null,
+      p_radius_miles: params.radius_miles ?? null,
+    }),
+  );
 
   if (error) return null;
 
@@ -178,7 +202,7 @@ async function searchViaDirectQuery(
     if (params.state) locQuery = locQuery.eq('state_province', params.state.toUpperCase());
     if (params.city) locQuery = locQuery.ilike('city', `%${params.city}%`);
 
-    const { data: locs, error: locErr } = await locQuery;
+    const { data: locs, error: locErr } = await withTimeout(locQuery);
     if (locErr) return null;
     providerIdScope = ((locs as { provider_id: string }[]) || []).map((l) => l.provider_id);
     if (providerIdScope.length === 0) return EMPTY(page, perPage);
@@ -208,7 +232,7 @@ async function searchViaDirectQuery(
   if (params.accepting_patients) query = query.eq('is_accepting_patients', true);
   if (params.provider_type_ids?.length === 1) query = query.eq('provider_type_id', params.provider_type_ids[0]);
 
-  const { data, error } = await query;
+  const { data, error } = await withTimeout(query);
   if (error || !data || data.length === 0) return null;
 
   const allCards = (data as Record<string, unknown>[]).map((row) => mapToCardData(mapProviderRow(row)));

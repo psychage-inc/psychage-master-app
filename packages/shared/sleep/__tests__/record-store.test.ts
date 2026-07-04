@@ -190,6 +190,38 @@ describe('validation — fails loud, persists nothing', () => {
       store.saveToday(input({ substances: { ...baseInput.substances, caffeine_last_time: 'noon' } })),
     ).toThrow(SleepValidationError);
   });
+
+  it('rejects negative / non-finite substance quantities at write (loader parity)', () => {
+    // The loader (migrate.ts isValidSubstances) rejects these on the next launch;
+    // accepting them at write would silently quarantine the whole blob later.
+    const { store } = setup();
+    expect(() =>
+      store.saveToday(input({ substances: { ...baseInput.substances, alcohol_units: -5 } })),
+    ).toThrow(SleepValidationError);
+    expect(() =>
+      store.saveToday(
+        input({ substances: { ...baseInput.substances, screens_before_bed_minutes: Number.NaN } }),
+      ),
+    ).toThrow(SleepValidationError);
+    expect(() =>
+      store.saveToday(
+        input({ substances: { ...baseInput.substances, alcohol_units: Number.POSITIVE_INFINITY } }),
+      ),
+    ).toThrow(SleepValidationError);
+    expect(store.getRecent(10)).toHaveLength(0);
+  });
+
+  it('a rejected substance write never reaches storage — reload keeps prior entries, no anomaly', () => {
+    const { store, storage, clock } = setup();
+    store.saveToday(input()); // a good entry first
+    expect(() =>
+      store.saveToday(input({ substances: { ...baseInput.substances, alcohol_units: -5 } })),
+    ).toThrow(SleepValidationError);
+
+    const reopened = new SleepRecordStore({ storage, now: clock.now, generateId: makeIds('r') });
+    expect(reopened.lastAnomaly).toBeNull();
+    expect(reopened.getRecent(10)).toHaveLength(1);
+  });
 });
 
 // ── settings ─────────────────────────────────────────────────────────────────

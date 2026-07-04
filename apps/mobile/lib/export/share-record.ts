@@ -34,4 +34,26 @@ export async function shareRecordFile(format: ExportFormat, content: string): Pr
       dialogTitle: 'Export your Psychage record',
     });
   }
+  // NOTE: the file is deliberately NOT deleted here. shareAsync resolves when
+  // our activity resumes, but the receiving app (Gmail, Drive, share
+  // extensions) reads the content:// URI AFTER that — deleting in a finally
+  // truncated the handoff (second-pass review of PR-014). The file is replaced
+  // on the next export (delete-then-create above) and removed by both wipe
+  // flows via deleteExportedRecordFiles(), which is what PR-014 required.
+}
+
+/**
+ * Best-effort removal of any exported record files from the cache dir. Also
+ * called by the wipe flows (S48 delete / privacy clear) so an export made
+ * before deletion cannot outlive it.
+ */
+export function deleteExportedRecordFiles(): void {
+  for (const meta of Object.values(META)) {
+    try {
+      const file = new File(Paths.cache, meta.filename);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort: a locked/missing file must never break the share or wipe flow.
+    }
+  }
 }

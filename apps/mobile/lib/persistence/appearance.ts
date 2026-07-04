@@ -139,6 +139,16 @@ export function getReducedMotionOverride(): boolean {
   return ensureLoaded().reducedMotion;
 }
 
+/**
+ * Drop the in-memory cache and re-notify subscribers so the next read
+ * re-hydrates from disk. Used after a disk wipe (S48 delete / privacy clear)
+ * so a stale cache can't keep serving — or re-persist — deleted data (PR-013).
+ */
+export function reloadAppearanceFromDisk(): void {
+  cache = null;
+  for (const listener of listeners) listener();
+}
+
 /** Test seam: drop the in-memory cache + listeners so a fresh-storage test re-hydrates. */
 export function __resetAppearanceCacheForTests(): void {
   cache = null;
