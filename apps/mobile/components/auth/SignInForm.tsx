@@ -148,7 +148,7 @@ export function SignInForm({
             {onSignUp ? (
               <Pressable
                 accessibilityRole="button"
-                hitSlop={6}
+                hitSlop={12}
                 onPress={onSignUp}
                 className="self-center px-1 py-1"
               >
