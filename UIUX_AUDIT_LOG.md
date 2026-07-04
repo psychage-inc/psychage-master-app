@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P] | batches_pending: [A,B,C,D,E,F,G,H,I,J,SW1,SW2] | findings: 4 (C:0 H:0 M:3 L:1) | repairs_done: 0 | next: batches A+B running
+phase: 2 | batches_done: [P,A,B] | batches_pending: [C,D,E,F,G,H,I,J,SW1,SW2] | findings: 17 (C:0 H:1 M:12 L:4) +1 rejected | repairs_done: 0 | next: batches C+D running. Inventory Status column updated in bulk before Phase 3.
 
 ## 1. Hunt Map
 
@@ -169,9 +169,94 @@ Internal flow screens (audited in host route's batch):
 
 **Components clean (batch P):** Text, Card, AnimatedPressable, ScreenShell, AppLoader, Skeleton, AnimatedEmptyState, AnimatedScrollView, AnimatedInput, AnimatedTextReveal, BreathingBlob, ScreenEntrance, SearchableList, AppTabBar, TrendLine, ScoreGauge, DomainRadar, MetricBars, CrisisPill, HeaderAvatar, PsychageLogo, SettingsRow family, DestructivePair, AuthTextField, AuthStatePanel, AuthErrorState, Terrain.
 
+### S-MCS-01 — HIGH — MomentCaptureSheet save double-fire
+
+- component: MomentCaptureSheet · file: apps/mobile/components/moments/MomentCaptureSheet.tsx:195 · check: touch/double-fire
+- defect: Save Button has no in-flight guard; rapid double tap calls onSave twice → duplicate moments persisted.
+- impact: Accidental duplicate capture corrupts the user's record.
+- evidence: `disabled={valence === null}` only; no isSaving state.
+- fix: `isSaving` state → `isLoading={isSaving}`, `disabled={valence === null || isSaving}`.
+- sites: hosted from Today (S3), Compass, onboarding/moment
+
+### S-MCS-02 — MEDIUM — MomentCaptureSheet note input hidden by keyboard
+
+- component: MomentCaptureSheet · file: apps/mobile/components/moments/MomentCaptureSheet.tsx:111,125 · check: keyboard
+- defect: Sheet is `max-h-[88%]` with plain ScrollView; no KeyboardAvoidingView, so note TextInput can sit under keyboard.
+- impact: User can't see the note they're typing.
+- fix: KeyboardAvoidingView (behavior=padding on iOS) around sheet content per ToolScreen pattern.
+- sites: same 3 hosts as S-MCS-01
+
 ## 3. Findings — Screen Tier
 
-(pending batches A–J)
+### Batch A — Auth (11/11 screens audited)
+
+#### A-01 — MEDIUM — sign-in password field no keyboard submit
+
+- SignInForm · apps/mobile/components/auth/SignInForm.tsx:105-117 · keyboard
+- Password AuthTextField lacks returnKeyType/onSubmitEditing; Return key can't submit.
+- fix: `returnKeyType="send" onSubmitEditing={handleSubmit}` (AuthTextField passes ...props through).
+
+#### A-02 — MEDIUM — sign-up confirm-password field no keyboard submit
+
+- SignUpForm · apps/mobile/components/auth/SignUpForm.tsx:158-171 · keyboard
+- Same as A-01 for confirm-password field.
+
+#### A-03 — MEDIUM — sign-in "Forgot password?" touch target ~34pt
+
+- SignInForm · apps/mobile/components/auth/SignInForm.tsx:118-127 · touch
+- `hitSlop={6}` + py-1 px-1 ≈ 34pt < 44pt floor. fix: hitSlop 12 or py-2.
+
+#### A-04 — MEDIUM — sign-in "Sign up" link touch target ~34pt
+
+- SignInForm · apps/mobile/components/auth/SignInForm.tsx:143-154 · touch
+- Same geometry as A-03. fix: hitSlop 12 or py-2.
+
+#### A-05 — MEDIUM — sign-up terms checkbox touch target ~36pt
+
+- SignUpForm · apps/mobile/components/auth/SignUpForm.tsx:175-213 · touch
+- `hitSlop={6}` around 24pt checkbox row < 44pt. fix: hitSlop 10 or py-2.
+
+#### A-06 — LOW — verify screen long email may wrap 3+ lines
+
+- VerifyPanel · apps/mobile/components/auth/VerifyPanel.tsx:57 · text survival
+- `<Text variant="bodyLarge">{email}</Text>` unclamped. fix: numberOfLines={2}.
+
+**Clean:** welcome, why, verify-success, reset-password, session-expired, forgot-password, sign-out, migrate.
+
+### Batch B — Today (4/4 screens + capture sheet audited)
+
+Promoted to shared tier: S-MCS-01 (save double-fire), S-MCS-02 (keyboard over note input).
+**REJECTED at merge:** agent's "Button isLoading opacity fade not reduced-motion gated" claim — `opacity: ternary` in a plain style prop is an instant swap, not an animation; no defect. Re-check during S-BTN-01 repair (same file).
+
+#### B-02 — MEDIUM — reflection week line unclamped
+
+- ReflectionView · apps/mobile/features/reflection/ReflectionView.tsx:70 · text survival
+- `week.line` italic display text has no numberOfLines; long generated insight clips/illegible at fontScale 1.3 on 360pt.
+- fix: numberOfLines={3}.
+
+#### B-03 — MEDIUM — reflection-earlier week lines unclamped
+
+- EarlierReflectionsView · apps/mobile/features/reflection/EarlierReflectionsView.tsx:67 · text survival
+- Same class as B-02 per card. fix: numberOfLines={2}.
+
+#### B-04 — MEDIUM — home rails layout shift on async load
+
+- InterestRails/PickUpRail/MostRead · apps/mobile/components/home/rails/{InterestRails.tsx:33-79, PickUpRail.tsx:20-50, MostRead.tsx:16-50} · motion/jank
+- Rails render null while self-fetching, then pop in → page jumps below the fold on first load.
+- fix: reserve rail-height Skeleton while loading (existing Skeleton primitive), keep render-null only for confirmed-empty.
+
+#### B-07 — LOW — history FlashList missing estimatedItemSize
+
+- MomentsHistoryView · apps/mobile/components/moments/MomentsHistoryView.tsx:107 · scroll
+- fix: estimatedItemSize≈65. (FlashList v2 note: verify prop still applies before fixing.)
+
+#### B-08 — LOW — stale checkin=1 param re-opens capture sheet
+
+- today/index + HomeContainer · apps/mobile/app/(tabs)/(today)/index.tsx:24,28,60 · navigation
+- Param persists across tab re-entry; sheet auto-opens twice in one session.
+- fix: consume-once (router.setParams({checkin: undefined}) after open, or one-shot ref).
+
+**Clean:** history (S7) apart from B-07; reflection (S9) apart from B-02; reflection-earlier (S10) apart from B-03.
 
 ## 4. Observations (design left alone)
 
