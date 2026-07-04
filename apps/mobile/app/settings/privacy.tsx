@@ -28,14 +28,15 @@ import { useSyncConsent } from '@/lib/use-sync-consent';
 // (S47/S48) lives under Account in the hub — this screen no longer duplicates it.
 export default function PrivacyScreen() {
   const t = CT4_SETTINGS.privacy;
-  const [busy, setBusy] = useState(false);
+  // Which export is in flight (null = idle) — drives the pressed button's spinner.
+  const [busy, setBusy] = useState<ExportFormat | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [cleared, setCleared] = useState(false);
   const { momentSyncConsent, setMomentSyncConsent: setConsent } = useSyncConsent();
 
   const onExport = async (format: ExportFormat) => {
-    if (busy) return;
-    setBusy(true);
+    if (busy !== null) return;
+    setBusy(format);
     try {
       const entries = readAllEntries(dailyRollupReader(getMomentStore()));
       const content = format === 'json' ? toJSON(entries) : toCSV(entries);
@@ -45,7 +46,7 @@ export default function PrivacyScreen() {
       // calm feedback, never a silent no-op or an unhandled rejection.
       Alert.alert(t.exportFailTitle, t.exportFailBody);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -105,10 +106,10 @@ export default function PrivacyScreen() {
           <Text variant="caption" className="px-1 text-text-secondary dark:text-text-secondary-dark">
             {t.exportDescription}
           </Text>
-          <Button variant="secondary" onPress={() => onExport('json')} disabled={busy} testID="export-json">
+          <Button variant="secondary" onPress={() => onExport('json')} disabled={busy !== null} isLoading={busy === 'json'} testID="export-json">
             {t.exportJson}
           </Button>
-          <Button variant="secondary" onPress={() => onExport('csv')} disabled={busy} testID="export-csv">
+          <Button variant="secondary" onPress={() => onExport('csv')} disabled={busy !== null} isLoading={busy === 'csv'} testID="export-csv">
             {t.exportCsv}
           </Button>
         </View>
