@@ -98,7 +98,7 @@ export function Button({
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: !!disabled || !!isLoading, busy: !!isLoading }}
       disabled={disabled}
       onPress={handlePress}
       className={composed}
