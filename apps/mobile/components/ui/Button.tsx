@@ -4,7 +4,7 @@ import { useColorScheme } from 'nativewind';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { useHaptics } from '@/lib/haptic-context';
-import { DURATION, easingFn } from '@/lib/motion';
+import { DURATION, easingFn, useReducedMotion } from '@/lib/motion';
 
 import { Text } from './Text';
 import { AnimatedPressable } from './AnimatedPressable';
@@ -67,6 +67,7 @@ export function Button({
   const { fireHaptic } = useHaptics();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const reduced = useReducedMotion();
 
   // Spinner color tracks textVariantClasses (AA contract): on the primary fill the
   // label is white in light but flips to ink (#0C0A09) in dark where the fill
@@ -110,19 +111,19 @@ export function Button({
       {...props}
     >
       <Animated.View
-        layout={LinearTransition.springify().damping(16).stiffness(200)}
+        layout={reduced ? undefined : LinearTransition.springify().damping(16).stiffness(200)}
         className="flex-row items-center justify-center gap-2"
       >
         {isLoading ? (
-          <Animated.View entering={FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={FadeOut.duration(DURATION.swift)}>
+          <Animated.View entering={reduced ? undefined : FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={reduced ? undefined : FadeOut.duration(DURATION.swift)}>
             <ActivityIndicator color={spinnerColor} size="small" />
           </Animated.View>
         ) : typeof children === 'string' ? (
-          <Animated.Text entering={FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={FadeOut.duration(DURATION.swift)} className={textVariantClasses[variant]}>
+          <Animated.Text entering={reduced ? undefined : FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={reduced ? undefined : FadeOut.duration(DURATION.swift)} className={textVariantClasses[variant]}>
             <Text variant="label" className={textVariantClasses[variant]}>{children}</Text>
           </Animated.Text>
         ) : (
-          <Animated.View entering={FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={FadeOut.duration(DURATION.swift)}>
+          <Animated.View entering={reduced ? undefined : FadeIn.duration(DURATION.swift).easing(easingFn('out'))} exiting={reduced ? undefined : FadeOut.duration(DURATION.swift)}>
             {children}
           </Animated.View>
         )}
