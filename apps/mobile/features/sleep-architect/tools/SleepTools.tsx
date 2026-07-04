@@ -25,6 +25,9 @@ type SleepToolsProps = {
 export function SleepTools({ entries, settings, onSaveTargets }: SleepToolsProps) {
   const t = CT4_SLEEP.tools;
   const [tool, setTool] = useState<Tool>('menu');
+  // Saving quiz targets returns to the menu; without this line the save is silent
+  // and the person can't tell their bedtime/wake targets took effect.
+  const [targetsSaved, setTargetsSaved] = useState(false);
 
   if (tool === 'menu') {
     const items: { key: Tool; title: string; sub: string }[] = [
@@ -34,12 +37,24 @@ export function SleepTools({ entries, settings, onSaveTargets }: SleepToolsProps
     ];
     return (
       <View className="gap-3">
+        {targetsSaved ? (
+          <Text
+            variant="caption"
+            accessibilityLiveRegion="polite"
+            className="text-primary dark:text-primary-dark"
+          >
+            {t.targetsSaved}
+          </Text>
+        ) : null}
         {items.map((item) => (
           <Pressable
             key={item.key}
             accessibilityRole="button"
             accessibilityLabel={item.title}
-            onPress={() => setTool(item.key)}
+            onPress={() => {
+              setTargetsSaved(false);
+              setTool(item.key);
+            }}
             className="min-h-[44px] gap-0.5 rounded-xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark"
           >
             <Text variant="label">{item.title}</Text>
@@ -61,6 +76,7 @@ export function SleepTools({ entries, settings, onSaveTargets }: SleepToolsProps
         <ChronotypeQuiz
           onSaveTargets={(result) => {
             onSaveTargets(result);
+            setTargetsSaved(true);
             setTool('menu');
           }}
         />
