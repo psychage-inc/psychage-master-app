@@ -1,5 +1,5 @@
 import { useState, useEffect, forwardRef } from 'react';
-import { TextInput, type TextInputProps, View, } from 'react-native';
+import { TextInput, type TextInputProps, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -58,12 +58,12 @@ export const AnimatedInput = forwardRef<TextInput, AnimatedInputProps>(
       }
     }, [error, reduced, shakeAnim]);
 
-    const handleFocus = (e: any) => {
+    const handleFocus: TextInputProps['onFocus'] = (e) => {
       setIsFocused(true);
       onFocus?.(e);
     };
 
-    const handleBlur = (e: any) => {
+    const handleBlur: TextInputProps['onBlur'] = (e) => {
       setIsFocused(false);
       onBlur?.(e);
     };

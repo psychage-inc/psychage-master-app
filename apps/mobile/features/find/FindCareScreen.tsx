@@ -24,9 +24,9 @@ import {
   Stethoscope, Trash2, Users, X,
 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, TextInput, View, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, BackHandler, Modal, Pressable, ScrollView, TextInput, View, type AccessibilityRole, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, LinearTransition, SlideInDown, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, LinearTransition, SlideInDown, useAnimatedStyle, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
 import { useReducedMotion } from '@/lib/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -138,7 +138,7 @@ function useCountUp(target: number, reduce: boolean) {
   }, [target, reduce]);
   return v;
 }
-function Tap({ onPress, children, className, style, accessibilityLabel, accessibilityRole, activeScale = 0.96 }: { onPress?: () => void; children: React.ReactNode; className?: string; style?: ViewStyle; accessibilityLabel?: string; accessibilityRole?: any; activeScale?: number }) {
+function Tap({ onPress, children, className, style, accessibilityLabel, accessibilityRole, activeScale = 0.96 }: { onPress?: () => void; children: React.ReactNode; className?: string; style?: ViewStyle; accessibilityLabel?: string; accessibilityRole?: AccessibilityRole; activeScale?: number }) {
   const s = useSharedValue(1);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   const cfg = { damping: 20, stiffness: 400, mass: 0.6 };
@@ -247,7 +247,6 @@ export default function FindCareScreen() {
   const soft = isDark ? colors.text.secondary.dark : colors.text.secondary.light;
   const faint = isDark ? colors.text.tertiary.dark : colors.text.tertiary.light;
   const teal = isDark ? colors.teal[400] : colors.teal[600];
-  const tealPress = isDark ? colors.teal[500] : colors.teal[700];
   const red = isDark ? colors.crisis.dark : colors.crisis.light;
 
   const { fireHaptic } = useHaptics();
@@ -966,7 +965,6 @@ const CompareStep = React.memo(function CompareStep({ ids, onBack, onRemove }: {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 12 }}>
         {(data ?? []).map((p) => {
           const name = cleanDisplayName(p.display_name) || p.display_name;
-          const locrow = p.locations.find((l) => l.is_primary) ?? p.locations[0] ?? null;
           return (
             <View key={p.id} className="w-[180px] bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-2xl p-3.5">
               <View style={{ backgroundColor: colorFor(p.id) }} className="w-[46px] h-[46px] rounded-full items-center justify-center self-center mb-2"><Text className="font-sans-bold text-white">{initials(name)}</Text></View>
@@ -989,7 +987,7 @@ function SortSheet({ visible, value, geo, onSelect, onClose }: { visible: boolea
   const { colorScheme } = useColorScheme();
   const ink = colorScheme === 'dark' ? colors.text.primary.dark : colors.text.primary.light;
   const teal = colorScheme === 'dark' ? colors.teal[400] : colors.teal[600];
-  const opts: [string, string][] = [['relevance', 'Relevance'], ...(geo ? ([['distance', 'Nearest']] as [string, string][]) : []), ['name', 'Name A–Z']];
+  const opts: ['relevance' | 'name' | 'distance', string][] = [['relevance', 'Relevance'], ...(geo ? ([['distance', 'Nearest']] as ['distance', string][]) : []), ['name', 'Name A–Z']];
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
@@ -1002,7 +1000,7 @@ function SortSheet({ visible, value, geo, onSelect, onClose }: { visible: boolea
           </View>
           <View className="px-6 pt-3 gap-2">
             {opts.map(([v, l]) => (
-              <Tap key={v} activeScale={0.96} onPress={() => onSelect(v as any)}>
+              <Tap key={v} activeScale={0.96} onPress={() => onSelect(v)}>
                 <View className={`flex-row items-center justify-between py-4 px-5 rounded-2xl border ${value === v ? 'border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/10' : 'border-border/30 dark:border-border-dark/30 bg-surface dark:bg-surface-dark'}`}>
                   <Text className={`font-sans-medium text-[16px] ${value === v ? 'text-teal-700 dark:text-teal-300' : 'text-text-primary dark:text-text-primary-dark'}`}>{l}</Text>
                   {value === v ? <Check size={20} color={teal} /> : null}
