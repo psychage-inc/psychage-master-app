@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -72,13 +72,14 @@ export function ArticleReader({ slug }: { slug: string }) {
   const scrollProgressVal = useSharedValue(0);
 
   const runOnScrollJS = (offsetY: number, contentHeight: number, layoutHeight: number) => {
+    // Rebuilt from the worklet's scalars — only the fields the tracker reads exist.
     const fakeEvent = {
       nativeEvent: {
         contentOffset: { y: offsetY, x: 0 },
         contentSize: { height: contentHeight, width: 0 },
         layoutMeasurement: { height: layoutHeight, width: 0 },
       },
-    } as any;
+    } as unknown as NativeSyntheticEvent<NativeScrollEvent>;
     onScroll(fakeEvent);
   };
 

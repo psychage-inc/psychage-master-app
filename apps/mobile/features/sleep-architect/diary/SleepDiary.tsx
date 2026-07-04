@@ -55,7 +55,7 @@ function DiaryRow({ entry, onPress }: { entry: SleepEntry; onPress: () => void }
       onPress={onPress}
       className="min-h-[44px] flex-row items-center justify-between rounded-xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark"
     >
-      <View className="gap-0.5">
+      <View className="flex-1 gap-0.5 pr-3">
         <Text variant="bodyLarge">{entry.date}</Text>
         <Text variant="caption" className="text-text-secondary dark:text-text-secondary-dark">
           {CT4_SLEEP.diary.quality}: {entry.sleep_quality}/5

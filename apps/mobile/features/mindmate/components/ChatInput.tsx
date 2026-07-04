@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { MINDMATE_COPY } from '../copy';
 import { colors } from '@/lib/colors';
-import { useHaptics } from '@/lib/haptic-context';
 import { useThemeColors } from '@/lib/use-theme-colors';
 
 // Message composer. Multiline grows to a cap; the send affordance is a 44pt round
@@ -25,7 +24,6 @@ export function ChatInput({
 }) {
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const { fireHaptic } = useHaptics();
   const insets = useSafeAreaInsets();
   const tc = useThemeColors();
   const canSend = value.trim().length > 0 && !disabled;

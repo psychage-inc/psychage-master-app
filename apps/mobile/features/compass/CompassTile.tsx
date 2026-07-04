@@ -78,7 +78,10 @@ export function HeroTile({ title, feature, icon: Icon, onPress, testID }: TilePr
         >
           {title}
         </Text>
-        <Text className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark">
+        <Text
+          className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark"
+          numberOfLines={1}
+        >
           {feature}
         </Text>
       </View>
@@ -110,7 +113,10 @@ export function SmallTile({ title, feature, icon: Icon, onPress, testID }: TileP
         >
           {title}
         </Text>
-        <Text className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark">
+        <Text
+          className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark"
+          numberOfLines={1}
+        >
           {feature}
         </Text>
       </View>
@@ -138,7 +144,7 @@ export function ClarityTile({ title, feature, icon: Icon, onPress, testID }: Til
         <Text className="font-sans-bold text-base text-white" numberOfLines={2}>
           {title}
         </Text>
-        <Text className="mt-0.5 font-sans-medium text-xs" style={{ color: '#2DD4BF' }}>{feature}</Text>
+        <Text className="mt-0.5 font-sans-medium text-xs" style={{ color: '#2DD4BF' }} numberOfLines={1}>{feature}</Text>
       </View>
       <Icon size={30} color={TEAL} strokeWidth={1.75} />
     </AnimatedPressable>
@@ -171,10 +177,16 @@ export function DeepDiveCard({ title, feature, icon: Icon, onPress, testID }: Ti
       </View>
       <Icon size={24} color={TEAL} strokeWidth={1.75} />
       <View className="mt-10">
-        <Text className="font-sans-medium text-base text-text-primary dark:text-text-primary-dark">
+        <Text
+          className="font-sans-medium text-base text-text-primary dark:text-text-primary-dark"
+          numberOfLines={2}
+        >
           {title}
         </Text>
-        <Text className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark">
+        <Text
+          className="mt-0.5 font-sans text-xs text-text-secondary dark:text-text-secondary-dark"
+          numberOfLines={1}
+        >
           {feature}
         </Text>
       </View>

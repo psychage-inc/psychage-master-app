@@ -140,6 +140,7 @@ export const CT4_SLEEP = {
     bedtime: { title: 'Bedtime calculator', sub: 'Work back from your wake time' },
     debt: { title: 'Sleep debt', sub: 'Catch-up across your recent nights' },
     back: 'Back to tools',
+    targetsSaved: 'Sleep window saved — your bedtime and wake targets are set.', // CT4
 
     chronotypeIntro: 'Five quick questions about your natural rhythm. Educational — not a test.',
     chronotypeResult: 'Your pattern',

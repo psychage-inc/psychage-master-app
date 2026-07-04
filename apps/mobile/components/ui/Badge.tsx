@@ -52,7 +52,7 @@ export function Badge({ variant = 'neutral', children, className, ...props }: Ba
   return (
     <View className={composed} {...props}>
       {typeof children === 'string' ? (
-        <Text variant="caption" className={`font-sans-medium ${textClasses[variant]}`}>
+        <Text variant="caption" numberOfLines={1} className={`font-sans-medium ${textClasses[variant]}`}>
           {children}
         </Text>
       ) : (

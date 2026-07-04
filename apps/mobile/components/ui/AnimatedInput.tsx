@@ -1,5 +1,5 @@
 import { useState, useEffect, forwardRef } from 'react';
-import { TextInput, type TextInputProps, View, } from 'react-native';
+import { TextInput, type TextInputProps, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,6 +9,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
+import { colors } from '@/lib/colors';
 import { useReducedMotion, SPRING_PRESETS } from '@/lib/motion';
 
 export interface AnimatedInputProps extends TextInputProps {
@@ -22,6 +23,12 @@ export const AnimatedInput = forwardRef<TextInput, AnimatedInputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const reduced = useReducedMotion();
     const { colorScheme } = useColorScheme();
+    const dark = colorScheme === 'dark';
+    // Theme-resolved rest-state colors (tokens: border.default, text.secondary,
+    // surface) — the previous light-only literals vanished on the true-black canvas.
+    const restBorder = dark ? '#3f3f46' : '#E7E5E4';
+    const restLabel = dark ? colors.text.secondary.dark : colors.text.secondary.light;
+    const floatBg = dark ? '#121212' : '#F9F7F3';
     
     // Animation states
     const focusAnim = useSharedValue(0);
@@ -51,12 +58,12 @@ export const AnimatedInput = forwardRef<TextInput, AnimatedInputProps>(
       }
     }, [error, reduced, shakeAnim]);
 
-    const handleFocus = (e: any) => {
+    const handleFocus: TextInputProps['onFocus'] = (e) => {
       setIsFocused(true);
       onFocus?.(e);
     };
 
-    const handleBlur = (e: any) => {
+    const handleBlur: TextInputProps['onBlur'] = (e) => {
       setIsFocused(false);
       onBlur?.(e);
     };
@@ -65,7 +72,7 @@ export const AnimatedInput = forwardRef<TextInput, AnimatedInputProps>(
       const borderColor = interpolateColor(
         focusAnim.value,
         [0, 1],
-        [error ? '#DC2626' : '#E7E5E4', error ? '#DC2626' : accentColor]
+        [error ? '#DC2626' : restBorder, error ? '#DC2626' : accentColor]
       );
       return {
         borderColor,
@@ -79,14 +86,14 @@ export const AnimatedInput = forwardRef<TextInput, AnimatedInputProps>(
       const color = interpolateColor(
         focusAnim.value,
         [0, 1],
-        ['#78716c', error ? '#DC2626' : accentColor]
+        [restLabel, error ? '#DC2626' : accentColor]
       );
       
       return {
         top,
         fontSize,
         color,
-        backgroundColor: isFloating ? (colorScheme === 'dark' ? '#18181b' : '#ffffff') : 'transparent',
+        backgroundColor: isFloating ? floatBg : 'transparent',
         paddingHorizontal: isFloating ? 4 : 0,
       };
     });

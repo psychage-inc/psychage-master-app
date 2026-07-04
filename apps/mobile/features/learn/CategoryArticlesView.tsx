@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/Text';
 import { ArticleListCard } from '@/features/content/ArticleListCard';
 import { resolveCategoryArticleList } from '@/features/learn/category-resolution';
 import { type ArticleListItem, listArticlesByCategorySlugs } from '@/lib/articles';
-import { colors } from '@/lib/colors';
+import { useThemeColors } from '@/lib/use-theme-colors';
 
 // S6→list: a category's real articles (FlashList, ~hundreds at the full corpus).
 // Pushed over the tabs, so it renders the GlobalHeader (Help-now pill reachable,
@@ -21,6 +21,7 @@ export function CategoryArticlesView({ id }: { id: string }) {
   // Resolution chain (curated topic → peaf slug → Browse manifest slug) lives in
   // category-resolution.ts (pure, Vitest-covered — PR-084).
   const { slugs, title } = resolveCategoryArticleList(id);
+  const tc = useThemeColors();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['articles', 'category', id],
@@ -42,7 +43,7 @@ export function CategoryArticlesView({ id }: { id: string }) {
           testID="category-back"
           className="min-h-[44px] flex-row items-center gap-1 px-2"
         >
-          <ChevronLeft size={20} color={colors.charcoal[600]} strokeWidth={2} />
+          <ChevronLeft size={20} color={tc.inkSecondary} strokeWidth={2} />
           <Text variant="caption" className="text-text-secondary dark:text-text-secondary-dark">
             Back
           </Text>

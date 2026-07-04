@@ -101,6 +101,7 @@ export function SignInForm({
                 autoCorrect={false}
                 keyboardType="email-address"
                 textContentType="emailAddress"
+                returnKeyType="next"
               />
               <AuthTextField
                 label={AUTH_COPY.passwordLabel}
@@ -114,10 +115,14 @@ export function SignInForm({
                 autoCapitalize="none"
                 autoCorrect={false}
                 textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (!submitting) handleSubmit();
+                }}
               />
               <Pressable
                 accessibilityRole="button"
-                hitSlop={6}
+                hitSlop={12}
                 onPress={onForgotPassword}
                 className="self-end px-1 py-1"
               >
@@ -143,7 +148,7 @@ export function SignInForm({
             {onSignUp ? (
               <Pressable
                 accessibilityRole="button"
-                hitSlop={6}
+                hitSlop={12}
                 onPress={onSignUp}
                 className="self-center px-1 py-1"
               >

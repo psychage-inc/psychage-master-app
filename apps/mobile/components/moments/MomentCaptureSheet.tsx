@@ -8,7 +8,7 @@ import {
 import { X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 import { ChipGroup } from '@/components/moments/ChipGroup';
@@ -55,6 +55,10 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
   const [note, setNote] = useState('');
   const [showAllLabels, setShowAllLabels] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  // One-shot guard: a rapid double-tap on save must not hand the draft up twice
+  // (duplicate moments / duplicate crisis navigation). Reset only on failure so
+  // the person can retry; on success the container closes the sheet.
+  const [saving, setSaving] = useState(false);
 
   const placeholderColor = colorForScheme(resolveColorRef('color.text.tertiary'), colorScheme);
   const iconColor = colorForScheme(resolveColorRef('color.text.secondary'), colorScheme);
@@ -75,7 +79,8 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
   };
 
   const handleSave = () => {
-    if (valence === null) return;
+    if (valence === null || saving) return;
+    setSaving(true);
     const trimmed = note.trim();
     const draft: MomentDraft = {
       valence,
@@ -90,6 +95,7 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
       onSave(draft);
     } catch {
       setSaveFailed(true);
+      setSaving(false);
     }
   };
 
@@ -105,6 +111,9 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
         className="flex-1"
         onPress={onClose}
       />
+      {/* Keeps the optional-note input visible above the keyboard (ToolScreen's
+          keyboardAvoiding pattern; Android relies on adjustResize). */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Animated.View
         entering={reduced ? undefined : SlideInDown.springify().damping(20).stiffness(200).mass(0.8)}
         exiting={reduced ? undefined : SlideOutDown.springify().damping(20).stiffness(200).mass(0.8)}
@@ -192,13 +201,14 @@ export function MomentCaptureSheet({ onSave, onClose, source = 'today' }: Moment
           )}
         </ScrollView>
 
-        <Button variant="primary" className="mt-4" disabled={valence === null} onPress={handleSave}>
+        <Button variant="primary" className="mt-4" disabled={valence === null || saving} onPress={handleSave}>
           {MOMENTS_COPY.save}
         </Button>
         <Text variant="caption" className="mt-2 text-center text-text-tertiary dark:text-text-tertiary-dark">
           {MOMENTS_COPY.privacyNote}
         </Text>
       </Animated.View>
+      </KeyboardAvoidingView>
     </Animated.View>
   );
 }

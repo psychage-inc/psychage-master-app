@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Pressable, type PressableProps, type GestureResponderEvent, type ViewStyle, type StyleProp } from 'react-native';
+import { Pressable, type LayoutChangeEvent, type PressableProps, type GestureResponderEvent, type ViewStyle, type StyleProp } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useReducedMotion, SPRING_PRESETS } from '@/lib/motion';
 import { useHaptics } from '@/lib/haptic-context';
@@ -40,19 +40,22 @@ export function AnimatedPressable({
   const rotateX = useSharedValue(0);
   const rotateY = useSharedValue(0);
 
-  const handleLayout = (e: any) => {
+  const handleLayout = (e: LayoutChangeEvent) => {
     width.value = e.nativeEvent.layout.width;
     height.value = e.nativeEvent.layout.height;
     onLayout?.(e);
   };
 
   const animatedStyle = useAnimatedStyle(() => {
-    const transforms: any[] = [{ scale: scale.value }];
-    if (tilt && !reduced) {
-      transforms.unshift({ perspective: 400 });
-      transforms.push({ rotateX: `${rotateX.value}rad` });
-      transforms.push({ rotateY: `${rotateY.value}rad` });
-    }
+    const transforms: NonNullable<ViewStyle['transform']> =
+      tilt && !reduced
+        ? [
+            { perspective: 400 },
+            { scale: scale.value },
+            { rotateX: `${rotateX.value}rad` },
+            { rotateY: `${rotateY.value}rad` },
+          ]
+        : [{ scale: scale.value }];
     return {
       transform: transforms,
       opacity: opacity.value,

@@ -151,7 +151,7 @@ export function ConsultationGuidance({ tier, score, flags = [] }: ConsultationGu
           <View className="gap-2.5">
             {config.whatYouCanDo.map((item) => (
               <View key={item} className="flex-row items-start gap-2.5">
-                <CheckCircle2 size={16} color="#1A9B8C" style={{ marginTop: 2 }} />
+                <CheckCircle2 size={16} color={tc.primary} style={{ marginTop: 2 }} />
                 <Text variant="caption" className="flex-1 text-text-secondary dark:text-text-secondary-dark">
                   {item}
                 </Text>

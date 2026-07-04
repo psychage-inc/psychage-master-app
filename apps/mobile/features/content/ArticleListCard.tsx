@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { ArtPanel } from '@/features/learn/ArtPanel';
 import type { ArticleListItem } from '@/lib/articles';
+import { openArticle } from '@/lib/nav';
 
 // One article card in a category/search list — a single unified card where the
 // image and its information belong together: a 16:9 hero (blur-filled, uncropped
@@ -17,7 +17,7 @@ export const ArticleListCard = memo(function ArticleListCard({ article }: { arti
       accessibilityRole="button"
       accessibilityLabel={article.title}
       testID={`article-card-${article.slug}`}
-      onPress={() => router.push(`/article/${article.slug}`)}
+      onPress={() => openArticle(article.slug)}
       className="overflow-hidden rounded-2xl border border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
