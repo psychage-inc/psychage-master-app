@@ -32,6 +32,12 @@ export const AUTH_COPY = {
   // Generic — never leaks whether an account exists (Procedure-B security checklist).
   credentialsLine: 'Those details did not match. Check and try again.', // CT4
 
+  // /migrate — account data migration (deep-link surface; PR-058 made it explicit-start).
+  migrateIntro:
+    'Bring the check-ins on this phone (the last 7 days) into your account. Nothing moves until you start.', // CT4
+  migrateStartLabel: 'Start', // CT4
+  migrateExitLabel: 'Done', // CT4
+
   // S35 — Check your email + verification (rules/auth.md §3: verification required).
   verifyTitle: 'Check your email', // CT4
   verifyBody: 'We sent a link to confirm it is you. Tap it, then come back here.', // CT4

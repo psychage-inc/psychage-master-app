@@ -90,7 +90,7 @@ export function SafetyAlert({ visible, onDismiss, onCrisis, variant = 'dv' }: Sa
                   openResourceOrShow(
                     t.lifelineTel,
                     t.lifelineTitle,
-                    `Calling isn't available on this device. From any phone: ${t.lifelineSub}`,
+                    t.callFallback(t.lifelineSub),
                   )
                 }
               />
@@ -104,7 +104,7 @@ export function SafetyAlert({ visible, onDismiss, onCrisis, variant = 'dv' }: Sa
                     openResourceOrShow(
                       t.dvTel,
                       t.dvTitle,
-                      `Calling isn't available on this device. From any phone: ${t.dvSub}`,
+                      t.callFallback(t.dvSub),
                     )
                   }
                 />
@@ -116,7 +116,7 @@ export function SafetyAlert({ visible, onDismiss, onCrisis, variant = 'dv' }: Sa
                     openResourceOrShow(
                       t.textSms,
                       t.textTitle,
-                      `Texting isn't available on this device. From any phone: ${t.textSub}`,
+                      t.textFallback(t.textSub),
                     )
                   }
                 />

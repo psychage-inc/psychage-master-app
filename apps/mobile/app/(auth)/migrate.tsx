@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { AUTH_COPY } from '@/features/auth/copy';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -27,11 +28,7 @@ import { goBackOr } from '@/lib/nav';
 // explicit tap to start (auto-run only behind ?auto=1 for flows that already asked),
 // and the terminal states carry an exit that survives a cold start (goBackOr).
 
-// CT4 — placeholder copy, not final (features/auth/copy.ts convention; Dobson review).
-const MIGRATE_INTRO =
-  'Bring the check-ins on this phone (the last 7 days) into your account. Nothing moves until you start.'; // CT4
-const MIGRATE_START_LABEL = 'Start'; // CT4
-const MIGRATE_EXIT_LABEL = 'Done'; // CT4
+
 
 type ScreenStatus = MigrationStatus | 'idle';
 
@@ -66,9 +63,9 @@ export default function MigrateScreen() {
       <View className="flex-1 justify-center gap-6">
         {status === 'idle' ? (
           <View className="gap-6">
-            <Text variant="body">{MIGRATE_INTRO}</Text>
+            <Text variant="body">{AUTH_COPY.migrateIntro}</Text>
             <Button variant="primary" onPress={() => setStatus('merging')} testID="migrate-start">
-              {MIGRATE_START_LABEL}
+              {AUTH_COPY.migrateStartLabel}
             </Button>
           </View>
         ) : (
@@ -80,7 +77,7 @@ export default function MigrateScreen() {
         )}
         {status === 'done' || status === 'offline' ? (
           <Button variant="secondary" onPress={() => goBackOr('/')} testID="migrate-exit">
-            {MIGRATE_EXIT_LABEL}
+            {AUTH_COPY.migrateExitLabel}
           </Button>
         ) : null}
       </View>
