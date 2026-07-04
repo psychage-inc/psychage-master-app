@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P,A,B] | batches_pending: [C,D,E,F,G,H,I,J,SW1,SW2] | findings: 17 (C:0 H:1 M:12 L:4) +1 rejected | repairs_done: 0 | next: batches C+D running. Inventory Status column updated in bulk before Phase 3.
+phase: 2 | batches_done: [P,A,B,C,D] | batches_pending: [E,F,G,H,I,J,SW1,SW2] | findings: 20 (C:0 H:3 M:13 L:4) +1 rejected | repairs_done: 0 | next: batches E+F running. Inventory Status column updated in bulk before Phase 3.
 
 ## 1. Hunt Map
 
@@ -257,6 +257,33 @@ Promoted to shared tier: S-MCS-01 (save double-fire), S-MCS-02 (keyboard over no
 - fix: consume-once (router.setParams({checkin: undefined}) after open, or one-shot ref).
 
 **Clean:** history (S7) apart from B-07; reflection (S9) apart from B-02; reflection-earlier (S10) apart from B-03.
+
+### Batch C — Learn core (5/5 screens audited)
+
+#### C-01 — HIGH — [category] back chevron invisible in dark mode
+
+- CategoryArticlesView · apps/mobile/features/learn/CategoryArticlesView.tsx:45 · consistency/dark
+- `<ChevronLeft color={colors.charcoal[600]} />` hardcoded light-mode ink → near-invisible on #000000.
+- fix: `useThemeColors()` themed ink (match other back buttons).
+
+**Clean:** learn (S6), learn/browse, learn/search, saved.
+
+### Batch D — Reading surfaces (6/6 screens audited)
+
+#### D-01 — HIGH (VERIFY-AT-REPAIR) — condition guide heading hierarchy skips h1→h3
+
+- ConditionGuideView · apps/mobile/features/conditions/ConditionGuideView.tsx:91-114 · a11y
+- Definition labels use variant="h3" directly under h1 title.
+- CAUTION: RN SRs don't read Text visual variants as heading levels; swapping variant changes visual typography (restyle risk). Verify actual a11y impact (accessibilityRole/aria-level) before touching; may downgrade to OBSERVATION.
+
+#### D-02 — MEDIUM (VERIFY-AT-REPAIR) — article body maps HTML h2 → visual h1
+
+- ArticleBody · apps/mobile/features/content/blocks/ArticleBody.tsx:129 · a11y/consistency
+- `case 'heading2': return <Heading variant="h1">` while page title is already h1.
+- Same caution as D-01; content-structure dependent.
+
+**Clean:** conditions/index, conditions/[slug]/articles, conditions/[slug] (category branch), library, library/search; article/[slug] apart from D-02. Notable good: TTS stops on unmount; PEAF blocks degrade gracefully; hero images reserve aspect ratio.
+**OBS (D):** ArticleListCard/RelatedArticleCard use inline router.push instead of openArticle() helper — functionally correct; consistency note only.
 
 ## 4. Observations (design left alone)
 
