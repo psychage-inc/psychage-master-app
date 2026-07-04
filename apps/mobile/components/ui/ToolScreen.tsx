@@ -88,6 +88,8 @@ export function ToolScreen({
               {backLabel ? (
                 <Text
                   variant="bodyLarge"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   className="text-[15px] text-text-secondary dark:text-text-secondary-dark"
                 >
                   {backLabel}
@@ -96,7 +98,7 @@ export function ToolScreen({
             </AnimatedPressable>
           ) : null}
           {title ? (
-            <Text variant="h2" accessibilityRole="header" className="flex-1">
+            <Text variant="h2" accessibilityRole="header" numberOfLines={1} ellipsizeMode="tail" className="flex-1">
               {title}
             </Text>
           ) : null}
