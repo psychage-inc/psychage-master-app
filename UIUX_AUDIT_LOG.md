@@ -7,13 +7,14 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [P,A,B,C,D,E,F,G,H,I,J] | batches_pending: [SW1,SW2] | findings: 30 confirmed (C:0 H:5 M:18 L:7), 10 rejected after verification | repairs_done: 0 | next: sweeps SW1+SW2 running, then Phase 3 repair (order: S-MCS-01, J-01, C-01, E-01, I-01 → MEDIUMs shared-first → LOWs)
+phase: 3 | batches_done: ALL (P,A–J,SW1,SW2) | findings: 35 confirmed (H:5 M:21 L:9), 19 raw claims rejected/merged | repairs_done: 0 | next: repair HIGHs in order S-MCS-01 → J-01 → C-01 → E-01 → I-01, then shared MEDIUMs (S-BTN-01, S-BTN-03, S-TOOL-01, S-BDG-01, S-MCS-02, S-CHIP-01), then screen MEDIUMs (A-01..05, B-02/03/04, F-03, F-10, I-02, J-02, SW2-04/05/06), then LOWs (S-TILE-01, A-06, B-08, E-04, F-06, G-03, I-03, SW1-05, SW2-01)
 
 ## 1. Hunt Map
 
 ### 1.1 Screen Inventory
 
-Chrome legend: SHELL=ScreenShell, TOOL=ToolScreen, NATIVE=native stack header, WEB=WebView chrome, CUSTOM=feature-managed. Status: — not audited · 🔍 in audit · ✅ audited.
+Chrome legend: SHELL=ScreenShell, TOOL=ToolScreen, NATIVE=native stack header, WEB=WebView chrome, CUSTOM=feature-managed.
+**Status column superseded:** every production screen below (rows 1–66) was audited in batches P/A–J — per-screen verdicts live in §3 (findings or explicit "Clean" lists). Rows 67–68 are `__DEV__`-only, inventory-noted, excluded from fixes.
 
 | # | Route | Entry paths | Chrome | RNTL | Status |
 |---|-------|-------------|--------|------|--------|
@@ -445,6 +446,57 @@ Severity note: agent filed J-01 as CRITICAL ("data corruption") — orchestrator
 
 **Clean:** settings hub, reminders, appearance, about, terms, privacy-policy, disclaimer, acknowledgments, make-it-yours, session-prep (busy guard verified), delete (pre-confirm), supporter, onboarding welcome/interests/moment (apart from S-MCS sightings), +not-found (recovery CTA present).
 **OBS (J):** onboarding swipe-back escape is intentional (anonymous-first, never walls).
+
+### Sweep 2 — Dark mode + platform parity
+
+Orchestrator triage: AnimatedInput has ZERO usage sites (grep verified) → SW2-01/02/03 collapse to one LOW latent fix. SW2-05/06 downgraded HIGH→MEDIUM (light teal on dark = wrong token, still visible). SW2-07 → OBSERVATION (tab-bar inactive ink #6B6660 may be deliberate warm-neutral calibration; chrome color untouchable without proof of breakage). SW2-08 REJECTED (Expo Android `softwareKeyboardLayoutMode` defaults to resize; absence ≠ defect).
+
+#### SW2-01 — LOW (was 3 findings) — AnimatedInput dark-mode hardcoded colors (latent, component unused)
+
+- AnimatedInput · apps/mobile/components/ui/AnimatedInput.tsx:68,82,89 · consistency/dark
+- #E7E5E4 border, #78716c label, #18181b float bg — all light-only or off-token. Component currently has no usage sites; fix so future adoption isn't broken.
+
+#### SW2-04 — MEDIUM — clarity history snapshot ring light-only
+
+- ClarityHistoryView · apps/mobile/features/clarity/ClarityHistoryView.tsx:55 · dark
+- `borderColor: '#9ca3af55'` invisible on true-black. fix: theme-branch via useThemeColors border token.
+
+#### SW2-05 — MEDIUM — clarity calculating spinner wrong token in dark
+
+- ClarityFlow.tsx:153 · dark — `<ActivityIndicator color="#1A9B8C" />`; dark should use #20B8A6. fix: useThemeColors().
+
+#### SW2-06 — MEDIUM — ConsultationGuidance check icons wrong token in dark
+
+- ConsultationGuidance.tsx:154 · dark — CheckCircle2 #1A9B8C hardcoded; tc already in scope. fix: tc.primary.
+
+**Clean (SW2):** Button spinnerColor theme-branched; crisis reds contract-correct; tier/mood/valence fixed palettes intentional; charts/svg verified; haptics Android fallback present; Platform.select uses benign.
+
+### Sweep 1 — Journey continuity
+
+Orchestrator triage — 8 of 9 rejected:
+- SW1-01 REJECTED (MMKV writes synchronous; no flush race). SW1-02 REJECTED (single render returns first Redirect; no flash path).
+- **SW1-03 REJECTED with direct evidence** — FindCareScreen renders its own header WITH "Help now" → router.push('/crisis') (FindCareScreen.tsx:194) + second in-results crisis affordance (:577). SR-2 intact on Find tab.
+- SW1-04 REJECTED — unconditional CrisisPill in ToolScreen IS the SR-2 design; hiding it would violate the rule.
+- SW1-06 REJECTED → OBS (goBackOr('/learn') fallback only fires on empty-stack cold start; sane default).
+- SW1-07 REJECTED → OBS (generic-email fallback copy is the designed graceful state; changing = auth copy edit).
+- SW1-08/09 REJECTED → OBS (auth/settings 'default' animation is deliberate platform-modal language; consistent within their families).
+
+#### SW1-05 — LOW — article cards bypass openArticle() helper
+
+- ArticleListCard.tsx:20 (+ RelatedArticleCard per batch D) · consistency
+- Inline `router.push('/article/…')` vs sanctioned openArticle(slug) used everywhere else.
+- fix: swap to openArticle in both cards.
+
+**Clean (SW1):** first-run redirect chain, navigator→find handoff, learn loop bookmark consistency (single useSyncExternalStore instance), auth round-trip, tab re-press popToTop×4, article root-route back behavior.
+
+---
+
+## PHASE 2 COMPLETE — FINAL CONFIRMED LEDGER (35)
+
+- HIGH (5): S-MCS-01, J-01, C-01, E-01, I-01
+- MEDIUM (21): S-BTN-01, S-BTN-03, S-TOOL-01, S-BDG-01, S-MCS-02, S-CHIP-01, A-01..A-05, B-02, B-03, B-04, F-03, F-10, I-02, J-02, SW2-04, SW2-05, SW2-06
+- LOW (9): S-TILE-01, A-06, B-08, E-04, F-06, G-03, I-03, SW1-05, SW2-01
+- REJECTED after verification (19 raw claims): B-06, B-07, S-BTN-02, G-01, F-04, F-05, F-12, F-11, D-01, D-02, J-03(dup), F-02(dup), E-02(dup), E-03(dup), SW1-01/02/03/04/06/07/08/09, SW2-07(→OBS), SW2-08
 
 ## 4. Observations (design left alone)
 
