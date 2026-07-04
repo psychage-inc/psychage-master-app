@@ -85,7 +85,11 @@ Findings: **~96 registered** (PR-001…PR-096 plus second-pass items). **2 CRITI
 | `npx expo export --platform android` (production Metro/Hermes bundle) | PASS (9.9MB hbc) |
 | EAS production Android build | **finished** — .aab artifact (build d740d5f0) |
 
-EAS note: the finished .aab was built from commit 05e0afd (all findings fixed, deps final). The two commits after it (second-pass corrections, test seam) are JS/TS-only — no native module or config changes — and the final HEAD exports a clean production bundle. A store-submission build should be re-cut from final HEAD (or shipped as an EAS Update on top of d740d5f0's runtime).
+EAS note: the first .aab (d740d5f0) was built from commit 05e0afd. **Resolved 2026-07-04**: both artifacts were re-cut at the final code HEAD —
+- production .aab (store submission): build `0d60945f` — finished
+- preview .apk (installable on-device for smoke-testing): build `d8a45548` — finished
+
+Artifact URLs are on the expo.dev build pages (account ryan2441139, project mobile).
 
 ## 6. RESIDUAL_RISK — not verifiable in this environment
 
