@@ -7,7 +7,7 @@ Finding IDs: shared tier `S-<COMP>-<nn>` (root cause in a ≥2-site component, c
 
 ## STATE
 
-phase: 2 | batches_done: [] | batches_pending: [P,A,B,C,D,E,F,G,H,I,J,SW1,SW2] | findings: 0 (C:0 H:0 M:0 L:0) | repairs_done: 0 | next: batch P (shared primitives) running
+phase: 2 | batches_done: [P] | batches_pending: [A,B,C,D,E,F,G,H,I,J,SW1,SW2] | findings: 4 (C:0 H:0 M:3 L:1) | repairs_done: 0 | next: batches A+B running
 
 ## 1. Hunt Map
 
@@ -136,7 +136,38 @@ Internal flow screens (audited in host route's batch):
 
 ## 2. Findings — Shared Tier
 
-(pending batch P)
+### S-BTN-01 — MEDIUM — Button loading swap not reduced-motion gated
+
+- component: Button · file: apps/mobile/components/ui/Button.tsx:117,121,125 · check: motion/jank
+- defect: FadeIn/FadeOut on isLoading content swap fires without useReducedMotion gate (3 sites: spinner, string label, children).
+- impact: Reduced-motion users see flash transitions on every async CTA — violates calm principle.
+- evidence: `<Animated.View entering={FadeIn.duration(DURATION.swift)...}` with no `reduced` ternary.
+- fix: `reduced ? undefined : FadeIn...` on all three entering/exiting props.
+- sites: all 52 Button usages (behavioral, applies wherever isLoading used)
+
+### S-TOOL-01 — MEDIUM — ToolScreen backLabel/title lack overflow guards
+
+- component: ToolScreen · file: apps/mobile/components/ui/ToolScreen.tsx:89,99 · check: text survival
+- defect: backLabel and title Text in header flex-row have no numberOfLines; long strings wrap/push chrome.
+- impact: Long contextual back labels distort the tool header at large font scales.
+- fix: numberOfLines={1} + ellipsizeMode="tail" on both.
+- sites: 10 ToolScreen usages
+
+### S-BDG-01 — MEDIUM — Badge text no numberOfLines
+
+- component: Badge · file: apps/mobile/components/ui/Badge.tsx:55 · check: text survival
+- defect: caption Text in pill has no numberOfLines; long status text overflows pill geometry.
+- fix: numberOfLines={1} on Badge label.
+- sites: all Badge usages
+
+### S-TILE-01 — LOW — ClarityTile feature text inconsistent overflow handling
+
+- component: Tiles (ClarityTile) · file: apps/mobile/components/ui/tiles/Tiles.tsx:142 · check: text survival / consistency
+- defect: feature text lacks numberOfLines while sibling title has numberOfLines={2}; HeroTile/SmallTile guard theirs.
+- fix: numberOfLines={1} on line 142 for parity.
+- sites: Tiles.tsx (compass/home bento)
+
+**Components clean (batch P):** Text, Card, AnimatedPressable, ScreenShell, AppLoader, Skeleton, AnimatedEmptyState, AnimatedScrollView, AnimatedInput, AnimatedTextReveal, BreathingBlob, ScreenEntrance, SearchableList, AppTabBar, TrendLine, ScoreGauge, DomainRadar, MetricBars, CrisisPill, HeaderAvatar, PsychageLogo, SettingsRow family, DestructivePair, AuthTextField, AuthStatePanel, AuthErrorState, Terrain.
 
 ## 3. Findings — Screen Tier
 
