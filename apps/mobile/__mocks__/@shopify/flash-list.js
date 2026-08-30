@@ -6,7 +6,10 @@
 const React = require('react');
 const { View } = require('react-native');
 
-function FlashList({ data, renderItem, ListEmptyComponent, keyExtractor, testID }) {
+// Each item is wrapped in a View carrying `flashlist-item-type:<type>` so tests can
+// assert the recycle-pool type a list assigns per row (getItemType) — a real FlashList
+// recycles cells across rows of the same type, so a list of mixed rows must key them.
+function FlashList({ data, renderItem, ListEmptyComponent, keyExtractor, getItemType, testID }) {
   const items = data ?? [];
   let body;
   if (items.length === 0) {
@@ -20,8 +23,11 @@ function FlashList({ data, renderItem, ListEmptyComponent, keyExtractor, testID 
   } else {
     body = items.map((item, index) =>
       React.createElement(
-        React.Fragment,
-        { key: keyExtractor ? keyExtractor(item, index) : index },
+        View,
+        {
+          key: keyExtractor ? keyExtractor(item, index) : index,
+          testID: `flashlist-item-type:${getItemType ? String(getItemType(item, index)) : 'default'}`,
+        },
         renderItem({ item, index }),
       ),
     );

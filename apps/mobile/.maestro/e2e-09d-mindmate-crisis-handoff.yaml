@@ -1,0 +1,76 @@
+# E2E-09d — MindMate crisis handoff (D-01 regression, SR-2). Signed in, a REAL streamed
+# reply first (long enough to scroll the earlier user bubble off-screen — the list
+# shape that crashed the render), then the crisis message. Expected: the full crisis
+# surface opens, and Back lands on a LIVE chat showing the inline crisis card with the
+# conversation still rendered — no "Something went wrong", no dev red box.
+#
+# Shares the suite helpers (_boot.yaml, _signin.yaml) from test/e2e-maestro-suite.
+#   run-e2e.sh e2e-09d-mindmate-crisis-handoff -e EMAIL=<addr> -e PASSWORD=<pw>
+appId: com.psychage.app
+env:
+  MSG: 'What is the difference between feeling anxious and an anxiety disorder?'
+  CRISIS_MSG: 'I want to kill myself'
+---
+- runFlow: _boot.yaml
+- runFlow:
+    file: _signin.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-mindmate'
+- extendedWaitUntil:
+    visible: 'MindMate'
+    timeout: 10000
+- assertVisible: 'Online'
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${MSG}
+- tapOn:
+    id: 'mindmate-send'
+- takeScreenshot: e2e-09d/01-first-message-sent
+# The reply streams in. Citations mark the end of a turn when the server attaches any;
+# otherwise this is a bounded wait for the stream to settle (the composer is disabled
+# while a turn is in flight, so the crisis message cannot be typed early).
+- extendedWaitUntil:
+    visible:
+      id: 'mindmate-citations'
+    timeout: 60000
+    optional: true
+- takeScreenshot: e2e-09d/02-after-first-reply
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${CRISIS_MSG}
+- extendedWaitUntil:
+    visible:
+      id: 'mindmate-send'
+      enabled: true
+    timeout: 60000
+- tapOn:
+    id: 'mindmate-send'
+# Handoff, part 1: the full crisis surface (S11) opens on top of the chat.
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 15000
+- assertNotVisible: 'Something went wrong'
+- takeScreenshot: e2e-09d/03-crisis-surface-opened
+# Handoff, part 2: underneath, the chat is intact and carries the inline crisis card.
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible:
+      id: 'mindmate-crisis-card'
+    timeout: 10000
+- assertVisible: 'Get crisis support'
+- assertVisible: ${CRISIS_MSG}
+- assertNotVisible: 'Something went wrong'
+- assertNotVisible: 'Dismiss'
+- takeScreenshot: e2e-09d/04-chat-with-crisis-card
+# The card's own CTA reaches the crisis surface too.
+- tapOn:
+    id: 'mindmate-crisis-cta'
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 10000
+- takeScreenshot: e2e-09d/05-crisis-surface-from-card
+- tapOn: 'Back'
