@@ -1,0 +1,46 @@
+# E2E-03c — After the emailed confirmation link is opened in the simulator (runner:
+# auth-verify.sh), the app lands on /verify-success with a session set from the
+# implicit-flow tokens. Continue → home (signed in) → Settings shows the address →
+# sign out, so e2e-03b can then exercise the password sign-in path from a signed-out state.
+#
+#   run-e2e.sh e2e-03c-verify-continue -e EMAIL=<addr>
+appId: com.psychage.app
+---
+# Tolerant of re-runs: the verify-success screen is only present right after the link.
+- runFlow:
+    when:
+      visible: 'Email confirmed'
+    commands:
+      - takeScreenshot: e2e-03/03c-verify-success
+      - tapOn: 'Continue'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 20000
+# A signed-in-but-never-onboarded install is routed into onboarding; the header avatar
+# is present there too, so Settings is reachable either way.
+- runFlow:
+    when:
+      visible: 'Skip the tour'
+    commands:
+      - tapOn: 'Skip the tour'
+- takeScreenshot: e2e-03/03d-home-after-verify
+- tapOn: 'Account'
+# SettingsRow puts accessibilityLabel={label} on the row, so the email VALUE is not in the
+# a11y tree (screenshots show it; XCTest cannot). Signed-in state = the Sign out row exists.
+- extendedWaitUntil:
+    visible:
+      id: 'settings-row-sign-out'
+    timeout: 5000
+- takeScreenshot: e2e-03/03e-settings-signed-in-after-verify
+- assertVisible: 'Sign out'
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign out?'
+    timeout: 5000
+# On the confirm screen the button is the only "Sign out" (the settings row is gone).
+- tapOn: 'Sign out'
+# Signed out → either the front door (no header) or the onboarding welcome.
+- extendedWaitUntil:
+    visible: '(Help now|Explore without an account)'
+    timeout: 10000
+- takeScreenshot: e2e-03/03f-after-signout

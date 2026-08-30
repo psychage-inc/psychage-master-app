@@ -1,0 +1,75 @@
+# Shared helper: ensure the app is signed in as EMAIL / PASSWORD, from ANY state (front
+# door, onboarding welcome, home — signed in or not) and end on a screen with the global
+# header. Dismisses the iOS Keychain "Save/Update Password?" alert and the first-run tour.
+#   - runFlow:
+#       file: _signin.yaml
+#       env: { EMAIL: ..., PASSWORD: ... }
+appId: com.psychage.app
+---
+- extendedWaitUntil:
+    visible: '(Help now|Explore without an account|Check your email)'
+    timeout: 30000
+- runFlow:
+    when:
+      visible: 'Explore without an account'
+    commands:
+      - tapOn: 'Log in'
+- runFlow:
+    when:
+      visible: 'Already have a record? Sign in'
+    commands:
+      - tapOn: 'Already have a record? Sign in'
+- runFlow:
+    when:
+      visible: 'History'
+    commands:
+      - tapOn: 'Account'
+      - extendedWaitUntil:
+          visible: 'Accessibility & appearance'
+          timeout: 5000
+      # Already signed in → leave Settings (relaunch lands on home) and stop here.
+      - runFlow:
+          when:
+            visible:
+              id: 'settings-row-sign-out'
+          commands:
+            - runFlow: _boot.yaml
+      - runFlow:
+          when:
+            visible:
+              id: 'settings-row-sign-in'
+          commands:
+            - tapOn:
+                id: 'settings-row-sign-in'
+- runFlow:
+    when:
+      visible: 'Password'
+    commands:
+      - tapOn:
+          text: 'Email'
+          index: 1
+      - inputText: ${EMAIL}
+      - tapOn:
+          text: 'Password'
+          index: 1
+      - inputText: ${PASSWORD}
+      - pressKey: Enter
+      - tapOn:
+          text: 'Sign in'
+          index: 1
+      - extendedWaitUntil:
+          visible: '(Help now|Not Now)'
+          timeout: 20000
+      - runFlow:
+          when:
+            visible: 'Not Now'
+          commands:
+            - tapOn: 'Not Now'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 20000
+- runFlow:
+    when:
+      visible: 'Skip the tour'
+    commands:
+      - tapOn: 'Skip the tour'

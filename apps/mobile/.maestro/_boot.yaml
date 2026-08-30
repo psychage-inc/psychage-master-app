@@ -1,0 +1,39 @@
+# Shared boot helper for the live-backend E2E suite (Debug dev-client build) — keeps
+# app state. A Debug build opens on the expo-dev-client launcher, so after launchApp we
+# hand it the Metro URL via the dev-client deep link, then dismiss the one-time
+# expo-dev-menu intro. A Release build skips straight to the app; both paths tolerated.
+#   - runFlow: _boot.yaml          (keep state)
+#   - runFlow: _boot-fresh.yaml    (clearState — simulates a fresh install)
+appId: com.psychage.app
+env:
+  METRO_URL: 'http%3A%2F%2Flocalhost%3A8081'
+---
+- launchApp:
+    clearState: false
+    stopApp: true
+- runFlow:
+    when:
+      visible: 'Enter URL manually'
+    commands:
+      - openLink: psychage://expo-development-client/?url=${METRO_URL}
+- extendedWaitUntil:
+    notVisible: 'Enter URL manually'
+    timeout: 20000
+- runFlow:
+    when:
+      visible: 'This is the developer menu.*'
+    commands:
+      - tapOn: 'Continue'
+- extendedWaitUntil:
+    notVisible: 'This is the developer menu.*'
+    timeout: 5000
+# The intro's Continue lands on the dev menu itself — close it (X, id 'xmark').
+- runFlow:
+    when:
+      visible: 'Go home'
+    commands:
+      - tapOn:
+          id: 'xmark'
+- extendedWaitUntil:
+    notVisible: 'Go home'
+    timeout: 5000

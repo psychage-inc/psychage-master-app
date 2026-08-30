@@ -1,0 +1,59 @@
+# E2E-10 — The known-dead surfaces, documented exactly as a user sees them:
+# /library and /library/search (WebView wrappers whose token issuer is a stub that
+# throws → "Not available here yet"), /tools/med-tracker (same), /settings/reminders
+# (setting persists, but no OS notification is ever scheduled), /settings/supporter
+# (IAP stubbed → "unavailable"). Opened by deep link so the exact route is exercised.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- openLink: psychage://library
+- extendedWaitUntil:
+    visible:
+      id: '(wv-unavailable|wv-webview|wv-error|wv-skeleton|wv-still-loading|wv-offline)'
+    timeout: 15000
+- takeScreenshot: e2e-10/01-library
+- tapOn:
+    id: 'wv-back'
+- openLink: psychage://library/search
+- extendedWaitUntil:
+    visible:
+      id: '(wv-unavailable|wv-webview|wv-error|wv-skeleton|wv-still-loading|wv-offline)'
+    timeout: 15000
+- takeScreenshot: e2e-10/02-library-search
+- tapOn:
+    id: 'wv-back'
+- openLink: psychage://tools/med-tracker
+- extendedWaitUntil:
+    visible:
+      id: '(wv-unavailable|wv-webview|wv-error|wv-skeleton|wv-still-loading|wv-offline)'
+    timeout: 15000
+- takeScreenshot: e2e-10/03-med-tracker
+- tapOn:
+    id: 'wv-back'
+- openLink: psychage://settings/reminders
+- extendedWaitUntil:
+    visible: 'Daily reminder'
+    timeout: 10000
+- takeScreenshot: e2e-10/04-reminders
+- tapOn:
+    id: 'reminder-enabled-toggle'
+- takeScreenshot: e2e-10/05-reminders-enabled
+- tapOn:
+    id: 'reminder-never'
+- takeScreenshot: e2e-10/06-reminders-never
+- openLink: psychage://settings/supporter
+- extendedWaitUntil:
+    visible: 'Keep Psychage free'
+    timeout: 10000
+- takeScreenshot: e2e-10/07-supporter
+- tapOn:
+    id: 'supporter-tier-.*'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: '(supporter-unavailable|supporter-thanks)'
+    timeout: 10000
+- takeScreenshot: e2e-10/08-supporter-after-tap

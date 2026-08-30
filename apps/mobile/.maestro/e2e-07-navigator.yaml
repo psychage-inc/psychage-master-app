@@ -1,0 +1,173 @@
+# E2E-07 — Symptom Navigator: a normal run to results, then a crisis-flagged run that
+# must HALT (SR-2) and must NOT be persisted to on-device history.
+# Normal run: Emotional & Mood → "Excessive worry" → details defaults → safety "No" →
+# processing → results. SR-1 check: the results screen is screenshotted for how
+# confidence is displayed (code: ConfidenceBar renders "<n>%" — a number).
+# Crisis run: Cognitive & Focus → "Suicidal thoughts" (is_red_flag) → halt screen.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-navigator'
+- extendedWaitUntil:
+    visible: 'Understand your experience.'
+    timeout: 10000
+- takeScreenshot: e2e-07/01-navigator-welcome
+- assertVisible: 'Start the Navigator'
+- tapOn: 'Start the Navigator'
+- extendedWaitUntil:
+    visible: 'Where are you noticing things?'
+    timeout: 5000
+- takeScreenshot: e2e-07/02-domains
+- tapOn: 'Emotional .* Mood.*'
+- tapOn: 'Continue'
+- extendedWaitUntil:
+    visible: 'What have you been experiencing?'
+    timeout: 5000
+- takeScreenshot: e2e-07/03-symptoms-page-1
+# Category pages: Mood is page 1; "Excessive worry" is under Anxiety & Fear (page 2).
+- tapOn: 'Persistent sadness'
+- takeScreenshot: e2e-07/04-symptom-selected
+- scrollUntilVisible:
+    element:
+      text: '(Next|Continue)'
+    direction: DOWN
+    timeout: 10000
+- tapOn: '(Next|Continue)'
+- extendedWaitUntil:
+    visible: '(Symptom 1 of 1|Area 2 of .*|Anxiety & Fear)'
+    timeout: 5000
+- takeScreenshot: e2e-07/05-after-first-page
+# Walk any remaining category pages until the per-symptom detail step appears.
+- repeat:
+    while:
+      notVisible: 'Symptom 1 of 1'
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: '(Next|Continue)'
+          direction: DOWN
+          timeout: 10000
+      - tapOn: '(Next|Continue)'
+- takeScreenshot: e2e-07/06-detail
+- assertVisible: 'How intense does this feel?'
+- scrollUntilVisible:
+    element:
+      text: 'See results'
+    direction: DOWN
+    timeout: 10000
+- tapOn: 'See results'
+- extendedWaitUntil:
+    visible: 'Right now, are you thinking about hurting yourself, or do you feel unsafe?'
+    timeout: 5000
+- takeScreenshot: e2e-07/07-safety-question
+- tapOn: 'No'
+- extendedWaitUntil:
+    visible: 'Your results'
+    timeout: 30000
+- takeScreenshot: e2e-07/08-results-top
+- scroll
+- takeScreenshot: e2e-07/09-results-scrolled-1
+- scroll
+- takeScreenshot: e2e-07/10-results-scrolled-2
+- scroll
+- takeScreenshot: e2e-07/10b-results-scrolled-3
+- scrollUntilVisible:
+    element:
+      text: 'No online tool can be certain. A clinician can.'
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: e2e-07/10c-results-caveat
+- scrollUntilVisible:
+    element:
+      text: 'Saved on this device'
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: e2e-07/11-results-saved-on-device
+- scrollUntilVisible:
+    element:
+      text: 'Home'
+    direction: DOWN
+    timeout: 15000
+- tapOn: 'Home'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 10000
+
+# ── Crisis run: a red-flag symptom must halt the flow (SR-2) and never persist. ──
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-navigator'
+- extendedWaitUntil:
+    visible: 'Start the Navigator'
+    timeout: 10000
+- tapOn: 'Start the Navigator'
+- tapOn: 'Cognitive .* Focus.*'
+- tapOn: 'Continue'
+- extendedWaitUntil:
+    visible: 'What have you been experiencing?'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Suicidal thoughts'
+    direction: DOWN
+    timeout: 15000
+- tapOn: 'Suicidal thoughts'
+- takeScreenshot: e2e-07/20-crisis-symptom-selected
+- scrollUntilVisible:
+    element:
+      text: '(Next|Continue)'
+    direction: DOWN
+    timeout: 10000
+- tapOn: '(Next|Continue)'
+- repeat:
+    while:
+      notVisible: '(Symptom 1 of 1|Then let.s pause this.*)'
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: '(Next|Continue)'
+          direction: DOWN
+          timeout: 10000
+      - tapOn: '(Next|Continue)'
+- takeScreenshot: e2e-07/21-crisis-after-symptoms
+- runFlow:
+    when:
+      visible: 'Symptom 1 of 1'
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: 'See results'
+          direction: DOWN
+          timeout: 10000
+      - tapOn: 'See results'
+      - extendedWaitUntil:
+          visible: 'Right now, are you thinking about hurting yourself, or do you feel unsafe?'
+          timeout: 5000
+      - takeScreenshot: e2e-07/22-crisis-safety-question
+      - tapOn: 'No'
+- extendedWaitUntil:
+    visible: "Then let's pause this. What you're feeling deserves real support right now."
+    timeout: 30000
+- takeScreenshot: e2e-07/23-halt
+- assertVisible: 'Call your local emergency number'
+- assertNotVisible: 'Your results'
+- tapOn: 'Go back'
+- takeScreenshot: e2e-07/24-after-go-back
+# Check on-device history holds ONLY the non-crisis run. The Navigator is a root-stack
+# screen whose in-memory reducer state survives a deep link on top of it, so restart
+# the app (state is in-memory → gone) and open the history route from home.
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- openLink: psychage://tools/navigator-history
+- extendedWaitUntil:
+    visible: 'Past explorations'
+    timeout: 10000
+- takeScreenshot: e2e-07/25-navigator-history
+- assertVisible: 'Stays on your device.'

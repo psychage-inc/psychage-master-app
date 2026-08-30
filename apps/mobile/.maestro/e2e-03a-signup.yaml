@@ -1,0 +1,78 @@
+# E2E-03a — Sign-up (2026-08-29 live-backend verification).
+# Front door → "Create an account" → email form → Supabase signUp → /verify.
+# Confirm-email is ON for the live project, so a session is NOT expected here; the
+# runner then fetches the confirmation link from the disposable inbox (mail-poll.sh)
+# and opens it in the simulator before running e2e-03b.
+#
+#   run-e2e.sh e2e-03a-signup -e EMAIL=<addr> -e PASSWORD=<pw> -e NAME="E2E Tester"
+appId: com.psychage.app
+env:
+  NAME: 'E2E Tester'
+---
+- runFlow: _boot-fresh.yaml
+- extendedWaitUntil:
+    visible: 'Explore without an account'
+    timeout: 30000
+- tapOn: 'Create an account'
+- extendedWaitUntil:
+    visible: 'Use your email'
+    timeout: 5000
+- takeScreenshot: e2e-03/01-signup-sheet
+# AuthTextField renders label Text + TextInput with the SAME accessibility label, so the
+# input is the 2nd match (index 1). With the keyboard up the whole sheet lifts and its
+# bottom "Already have an account? Log in" link ends up covering the next field's input
+# (tapping the covered input flips the sheet to sign-in). So the form ScrollView — the
+# band between ~28% and ~55% of the screen while lifted — is scrolled before each lower
+# field is tapped. The Confirm field's return key SUBMITS (returnKeyType done): no Enter.
+- tapOn:
+    text: 'Full name'
+    index: 1
+- inputText: ${NAME}
+- tapOn:
+    text: 'Email'
+    index: 1
+- inputText: ${EMAIL}
+- swipe:
+    start: '50%,52%'
+    end: '50%,28%'
+    duration: 600
+- tapOn:
+    text: 'Password'
+    index: 1
+- inputText: ${PASSWORD}
+- swipe:
+    start: '50%,52%'
+    end: '50%,28%'
+    duration: 600
+- tapOn:
+    text: 'Confirm password'
+    index: 1
+- inputText: ${PASSWORD}
+# Return on the Confirm field submits (returnKeyType done). With the terms box still
+# unchecked that only surfaces the "Please accept the Terms…" line and drops the
+# keyboard — after which the sheet lays out at full height with checkbox + button.
+- pressKey: Enter
+- waitForAnimationToEnd
+- takeScreenshot: e2e-03/01b-signup-form-scrolled
+- scrollUntilVisible:
+    element:
+      text: 'I agree to the Terms of Service and Privacy Policy'
+    direction: DOWN
+    timeout: 10000
+# The checkbox row's centre is the inline "Terms of Service" link (pushes /settings/terms);
+# tap the box at the row's left edge instead.
+- tapOn:
+    text: 'I agree to the Terms of Service and Privacy Policy'
+    point: '4%,50%'
+- takeScreenshot: e2e-03/02-signup-filled
+- scrollUntilVisible:
+    element:
+      text: 'Create account'
+    direction: DOWN
+    timeout: 10000
+- tapOn: 'Create account'
+- extendedWaitUntil:
+    visible: 'Check your email'
+    timeout: 20000
+- takeScreenshot: e2e-03/03-verify-screen
+- assertVisible: 'We sent a link to confirm it is you. Tap it, then come back here.'

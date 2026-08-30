@@ -1,0 +1,125 @@
+# E2E-06 — Learn → browse → search → category → article reader → bookmark → /saved.
+# Real content: Supabase `articles` (~1,961 published) + `article_categories`.
+# Search is exercised through the in-app search box (Learn tab filters topics inline)
+# AND the /learn/search route (which, per code trace, has no in-app entry point — it is
+# opened by deep link here so the article search is actually tested).
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- tapOn: 'Learn'
+- extendedWaitUntil:
+    visible: 'Browse'
+    timeout: 10000
+- assertVisible: 'Find any topic across mental health.'
+- takeScreenshot: e2e-06/01-learn-browse
+# Topic search (inline filter) — a hit and a miss.
+- tapOn:
+    id: 'browse-search-input'
+- inputText: 'anxiety'
+- pressKey: Enter
+- takeScreenshot: e2e-06/02-topics-filter-anxiety
+- tapOn:
+    id: 'browse-search-input'
+- eraseText: 7
+- inputText: 'zzzqqqxx'
+- pressKey: Enter
+- assertVisible: 'No topics match your search.'
+- takeScreenshot: e2e-06/03-topics-filter-nomatch
+- tapOn:
+    id: 'browse-search-input'
+- eraseText: 8
+- pressKey: Enter
+# Conditions accordion (live ICD-11 families).
+- tapOn: 'Conditions'
+- takeScreenshot: e2e-06/04-conditions-mode
+- tapOn: 'Topics'
+# Open the first topic poster → category article list.
+- tapOn:
+    id: 'topic-card-.*'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'article-card-.*'
+    timeout: 20000
+- takeScreenshot: e2e-06/05-category-articles
+# Open the first article.
+- tapOn:
+    id: 'article-card-.*'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'article-save'
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: 'article-loading'
+    timeout: 20000
+- takeScreenshot: e2e-06/06-article-top
+- scroll
+- takeScreenshot: e2e-06/07-article-scrolled-1
+- scroll
+- takeScreenshot: e2e-06/08-article-scrolled-2
+- scroll
+- takeScreenshot: e2e-06/09-article-bottom
+# Bookmark it (idempotent: bookmarks are local MMKV state and survive re-runs).
+- runFlow:
+    when:
+      notVisible: 'Saved. Tap to remove.'
+    commands:
+      - tapOn:
+          id: 'article-save'
+- extendedWaitUntil:
+    visible: 'Saved. Tap to remove.'
+    timeout: 5000
+- takeScreenshot: e2e-06/10-article-saved
+- tapOn:
+    id: 'article-back'
+- runFlow: _boot.yaml
+# /saved reflects it.
+- tapOn: 'Account'
+- extendedWaitUntil:
+    visible: 'Privacy & your data'
+    timeout: 5000
+# "Saved" lives in the Data bento card, below the fold.
+- scrollUntilVisible:
+    element:
+      id: 'settings-row-saved'
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: 'settings-row-saved'
+- extendedWaitUntil:
+    visible:
+      id: 'saved-row-.*'
+    timeout: 5000
+- takeScreenshot: e2e-06/11-saved-list
+- runFlow: _boot.yaml
+# Article search route (deep link; no in-app entry) — a hit and a miss.
+- openLink: psychage://learn/search
+- extendedWaitUntil:
+    visible:
+      id: 'search-input'
+    timeout: 10000
+- takeScreenshot: e2e-06/12-search-idle
+- tapOn:
+    id: 'search-input'
+- inputText: 'sleep'
+- extendedWaitUntil:
+    visible:
+      id: 'article-card-.*'
+    timeout: 20000
+- takeScreenshot: e2e-06/13-search-sleep-results
+- tapOn: 'Clear search'
+- tapOn:
+    id: 'search-input'
+- inputText: 'zzzqqqxx'
+- extendedWaitUntil:
+    visible:
+      id: 'search-empty-mascot'
+    timeout: 20000
+- takeScreenshot: e2e-06/14-search-noresults
+- tapOn:
+    id: 'search-back'

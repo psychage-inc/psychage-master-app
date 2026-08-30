@@ -1,0 +1,34 @@
+# Shared helper: make sure NO account session is active. The Supabase session lives in
+# expo-secure-store (Keychain), which survives `clearState` / reinstall — so a "fresh
+# install" flow must sign out first or it boots straight back into the account.
+# Idempotent: does nothing when already signed out. Ends by relaunching the app.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: '(Help now|Explore without an account)'
+    timeout: 30000
+- runFlow:
+    when:
+      visible: 'Help now'
+    commands:
+      - tapOn: 'Account'
+      - extendedWaitUntil:
+          visible: 'Accessibility & appearance'
+          timeout: 5000
+      - runFlow:
+          when:
+            visible:
+              id: 'settings-row-sign-out'
+          commands:
+            - tapOn: 'Sign out'
+            - extendedWaitUntil:
+                visible: 'Sign out?'
+                timeout: 5000
+            - tapOn: 'Sign out'
+            - extendedWaitUntil:
+                visible:
+                  id: 'settings-row-sign-in'
+                timeout: 10000
+# Always end on a launch screen (home / onboarding / front door), never on Settings.
+- runFlow: _boot.yaml

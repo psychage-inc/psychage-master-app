@@ -1,0 +1,727 @@
+# E2E-12 — Manual-sweep automation (2026-08-29). Opens every route NOT covered by
+# e2e-01…11 by deep link, screenshots it, records if the root ErrorBoundary ("Try again")
+# appeared, then relaunches (iOS has no system back; several of these screens have no back
+# affordance of their own). Runs the whole list in LIGHT mode, flips Appearance → Night, and
+# runs it again for DARK-mode parity. No assertions — this is evidence collection for the
+# visual sweep in the report; look at the PNGs.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: '(Help now|Explore without an account)'
+    timeout: 30000
+- takeScreenshot: e2e-12/light-00-home
+- openLink: psychage://insights
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-01-insights
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-01-insights-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://toolkit
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-02-toolkit
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-02-toolkit-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/clarity
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-03-tools-clarity
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-03-tools-clarity-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/clarity-history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-04-tools-clarity-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-04-tools-clarity-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/relationship-health
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-05-tools-relationship-health
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-05-tools-relationship-health-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/relationship-history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-06-tools-relationship-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-06-tools-relationship-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/sleep
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-07-tools-sleep
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-07-tools-sleep-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reflection
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-08-reflection
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-08-reflection-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reflection-earlier
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-09-reflection-earlier
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-09-reflection-earlier-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://conditions
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-10-conditions
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-10-conditions-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://conditions/anxiety
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-11-conditions-anxiety
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-11-conditions-anxiety-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://learn/browse
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-12-learn-browse
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-12-learn-browse-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://learn/search
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-13-learn-search
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-13-learn-search-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://saved
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-14-saved
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-14-saved-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-15-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-15-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://add-provider
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-16-add-provider
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-16-add-provider-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://preview
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-17-therapist-preview
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-17-therapist-preview-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://range
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-18-therapist-range
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-18-therapist-range-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/about
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-19-settings-about
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-19-settings-about-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/acknowledgments
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-20-settings-acknowledgments
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-20-settings-acknowledgments-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/appearance
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-21-settings-appearance
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-21-settings-appearance-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/disclaimer
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-22-settings-disclaimer
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-22-settings-disclaimer-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/make-it-yours
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-23-settings-make-it-yours
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-23-settings-make-it-yours-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/privacy-policy
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-24-settings-privacy-policy
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-24-settings-privacy-policy-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/session-prep
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-25-settings-session-prep
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-25-settings-session-prep-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/terms
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-26-settings-terms
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-26-settings-terms-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://forgot-password
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-27-forgot-password
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-27-forgot-password-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reset-password
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-28-reset-password
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-28-reset-password-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://session-expired
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-29-session-expired
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-29-session-expired-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://why
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-30-why
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-30-why-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://verify
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-31-verify
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-31-verify-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://find/directory
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-32-find-directory
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-32-find-directory-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://find/compare
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-33-find-compare
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-33-find-compare-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://crisis-region
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-34-crisis-region
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-34-crisis-region-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tool/breathing
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-35-tool-breathing
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-35-tool-breathing-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://dev-icons
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-36-dev-icons
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-36-dev-icons-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://dev-navigator
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-37-dev-navigator
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-37-dev-navigator-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://this-route-does-not-exist
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/light-38-not-found
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/light-38-not-found-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+
+# ── Dark mode ──────────────────────────────────────────────────────────────────
+- openLink: psychage://settings/appearance
+- extendedWaitUntil:
+    visible: 'Night'
+    timeout: 10000
+- tapOn: 'Night'
+- takeScreenshot: e2e-12/dark-00-appearance
+- runFlow: _boot.yaml
+- takeScreenshot: e2e-12/dark-00-home
+- tapOn: 'Learn'
+- takeScreenshot: e2e-12/dark-00-learn
+- tapOn: 'Compass'
+- takeScreenshot: e2e-12/dark-00-compass
+- tapOn: 'Find'
+- takeScreenshot: e2e-12/dark-00-find
+- tapOn: 'Today'
+- tapOn: 'Help now'
+- takeScreenshot: e2e-12/dark-00-crisis
+- runFlow: _boot.yaml
+- tapOn: 'Account'
+- takeScreenshot: e2e-12/dark-00-settings
+- runFlow: _boot.yaml
+- openLink: psychage://insights
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-01-insights
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-01-insights-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://toolkit
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-02-toolkit
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-02-toolkit-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/clarity
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-03-tools-clarity
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-03-tools-clarity-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/clarity-history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-04-tools-clarity-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-04-tools-clarity-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/relationship-health
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-05-tools-relationship-health
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-05-tools-relationship-health-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/relationship-history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-06-tools-relationship-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-06-tools-relationship-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tools/sleep
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-07-tools-sleep
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-07-tools-sleep-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reflection
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-08-reflection
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-08-reflection-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reflection-earlier
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-09-reflection-earlier
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-09-reflection-earlier-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://conditions
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-10-conditions
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-10-conditions-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://conditions/anxiety
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-11-conditions-anxiety
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-11-conditions-anxiety-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://learn/browse
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-12-learn-browse
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-12-learn-browse-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://learn/search
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-13-learn-search
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-13-learn-search-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://saved
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-14-saved
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-14-saved-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://history
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-15-history
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-15-history-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://add-provider
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-16-add-provider
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-16-add-provider-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://preview
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-17-therapist-preview
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-17-therapist-preview-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://range
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-18-therapist-range
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-18-therapist-range-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/about
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-19-settings-about
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-19-settings-about-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/acknowledgments
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-20-settings-acknowledgments
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-20-settings-acknowledgments-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/appearance
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-21-settings-appearance
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-21-settings-appearance-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/disclaimer
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-22-settings-disclaimer
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-22-settings-disclaimer-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/make-it-yours
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-23-settings-make-it-yours
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-23-settings-make-it-yours-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/privacy-policy
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-24-settings-privacy-policy
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-24-settings-privacy-policy-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/session-prep
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-25-settings-session-prep
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-25-settings-session-prep-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://settings/terms
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-26-settings-terms
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-26-settings-terms-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://forgot-password
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-27-forgot-password
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-27-forgot-password-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://reset-password
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-28-reset-password
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-28-reset-password-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://session-expired
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-29-session-expired
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-29-session-expired-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://why
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-30-why
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-30-why-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://verify
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-31-verify
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-31-verify-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://find/directory
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-32-find-directory
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-32-find-directory-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://find/compare
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-33-find-compare
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-33-find-compare-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://crisis-region
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-34-crisis-region
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-34-crisis-region-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://tool/breathing
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-35-tool-breathing
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-35-tool-breathing-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://dev-icons
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-36-dev-icons
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-36-dev-icons-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://dev-navigator
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-37-dev-navigator
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-37-dev-navigator-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+- openLink: psychage://this-route-does-not-exist
+- waitForAnimationToEnd
+- takeScreenshot: e2e-12/dark-38-not-found
+- runFlow:
+    when:
+      visible: 'Try again'
+    commands:
+      - takeScreenshot: e2e-12/dark-38-not-found-ERROR-BOUNDARY
+- runFlow: _boot.yaml
+
+# Restore light mode.
+- openLink: psychage://settings/appearance
+- extendedWaitUntil:
+    visible: 'Light'
+    timeout: 10000
+- tapOn: 'Light'
