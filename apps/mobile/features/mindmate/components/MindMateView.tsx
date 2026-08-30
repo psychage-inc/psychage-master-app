@@ -24,6 +24,7 @@ import { ChatInput } from './ChatInput';
 import { ConsentBanner } from './ConsentBanner';
 import { type CrisisHotline, CrisisCard } from './CrisisCard';
 import { MessageList } from './MessageList';
+import { MessageListBoundary } from './MessageListBoundary';
 
 // S-MM MindMate screen. NATIVE chat (message list + composer), mascot-fronted.
 // GlobalHeader carries the always-visible Help-now pill → the crisis surface is
@@ -96,7 +97,11 @@ export function MindMateView({
         </Text>
       </View>
 
-      <MessageList messages={messages} />
+      {/* D-01: the list is boxed so a render failure inside it can never take the crisis
+          card (below, outside the box) or the header's Help-now pill down with it. */}
+      <MessageListBoundary>
+        <MessageList messages={messages} />
+      </MessageListBoundary>
 
         {crisisActive ? <CrisisCard onGetSupport={onRequestCrisis} hotline={hotline} /> : null}
 

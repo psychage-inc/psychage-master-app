@@ -23,6 +23,10 @@ export const MINDMATE_COPY = {
   crisisCta: 'Get crisis support',
   // Crisis card — region hotline call action. `{name}` is filled with the line name.
   crisisCallPrefix: 'Call',
+  // Message-list fail-safe (D-01). Shown INSIDE the chat area only when the list
+  // itself fails to render; the header Help-now pill and the inline crisis card sit
+  // outside that boundary and stay up. PROVISIONAL — needs Dr. Dobson's review.
+  listFallback: 'This conversation couldn’t be shown right now. Help is still available above.',
   // Sources / citations — the articles the reply drew on.
   sourcesLabel: 'Sources',
   // Consent banner — opt-in to save conversations. Plain-language, non-diagnostic,

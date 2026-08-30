@@ -91,8 +91,16 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
   const lastUserText = useRef<string | null>(null);
 
   const triggerCrisis = useCallback(() => {
+    // SR-2 delivery (D-01): the inline CrisisCard is driven by this state and is the
+    // guaranteed path — set it FIRST. The navigation handoff below is best-effort on
+    // top of it: a router that throws (no navigator mounted, stale ref, mid-transition)
+    // must never escape the send handler and take the screen — card included — down.
     setCrisisActive(true);
-    onCrisis?.();
+    try {
+      onCrisis?.();
+    } catch {
+      // Swallowed on purpose. Not logged: the failure could carry message text (rule 11).
+    }
   }, [onCrisis]);
 
   // Streams one assistant turn into the placeholder identified by `assistantId`.
