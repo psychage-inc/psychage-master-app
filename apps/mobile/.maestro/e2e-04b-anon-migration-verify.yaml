@@ -1,0 +1,40 @@
+# E2E-04b — After email confirmation + sign-in (runner opens the emailed link, then
+# runs e2e-03b-style sign-in): assert the 3 anonymous Moments survived, open the
+# deep-link-only /migrate surface, and confirm they persist after a relaunch.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-04/10-history-after-signin
+- assertVisible: '3 moments so far'
+- runFlow: _boot.yaml
+# The explicit migration surface — reachable only by deep link (no in-app caller).
+- openLink: psychage://migrate
+- extendedWaitUntil:
+    visible: 'Start'
+    timeout: 10000
+- takeScreenshot: e2e-04/11-migrate-screen
+- tapOn: 'Start'
+- extendedWaitUntil:
+    visible: 'Done'
+    timeout: 30000
+- takeScreenshot: e2e-04/12-migrate-result
+- tapOn: 'Done'
+- stopApp
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-04/13-history-after-relaunch
+- assertVisible: '3 moments so far'
+- runFlow: _boot.yaml

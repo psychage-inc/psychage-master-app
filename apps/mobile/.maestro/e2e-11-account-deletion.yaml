@@ -1,0 +1,58 @@
+# E2E-11 — Account deletion via Settings → "Delete my record" → confirm. Requires a
+# signed-in test account. Asserts the local record is wiped (history empty, settings
+# "Not signed in"). Server-side erasure is verified by the runner (sign-in with the
+# deleted credentials must fail; REST reads with the old JWT must 401/empty).
+#
+#   run-e2e.sh e2e-11-account-deletion -e EMAIL=<addr> -e PASSWORD=<pw>
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- tapOn: 'Account'
+# SettingsRow puts accessibilityLabel={label} on the row, so the email VALUE is not in the
+# a11y tree (screenshots show it; XCTest cannot). Signed-in state = the Sign out row exists.
+- extendedWaitUntil:
+    visible:
+      id: 'settings-row-sign-out'
+    timeout: 5000
+- takeScreenshot: e2e-11/01-settings-signed-in
+- tapOn: 'Delete my record'
+- extendedWaitUntil:
+    visible: 'This deletes your record from this device.'
+    timeout: 5000
+- takeScreenshot: e2e-11/02-delete-explainer
+- tapOn: 'Continue to delete'
+- extendedWaitUntil:
+    visible: 'Delete now?'
+    timeout: 5000
+- takeScreenshot: e2e-11/03-delete-confirm
+- tapOn:
+    id: 'destructive-action'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- takeScreenshot: e2e-11/04-after-delete
+# Server-fail alert, if the RPC could not run — record it rather than fail silently.
+- runFlow:
+    when:
+      visible: "Couldn't reach our servers"
+    commands:
+      - takeScreenshot: e2e-11/04b-server-fail-alert
+      - tapOn: 'OK'
+- tapOn: 'Account'
+- extendedWaitUntil:
+    visible: 'Not signed in'
+    timeout: 5000
+- takeScreenshot: e2e-11/05-settings-after-delete
+- assertNotVisible:
+    id: 'settings-row-sign-out'
+- runFlow: _boot.yaml
+- tapOn: 'Today'
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-11/06-history-after-delete
+- runFlow: _boot.yaml

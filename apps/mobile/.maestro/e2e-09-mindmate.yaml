@@ -1,0 +1,64 @@
+# E2E-09 — MindMate: a real streamed reply from https://www.psychage.com/api/ai/chat
+# (bearer = Supabase session, so this requires the e2e-03 signed-in state), then a
+# crisis-language message (client pre-check must fire, no backend call, nothing
+# persisted), then a network cut mid-conversation (runner cuts the network before the
+# third message; see e2e-09b).
+#
+#   run-e2e.sh e2e-09-mindmate -e EMAIL=<addr> -e PASSWORD=<pw>
+appId: com.psychage.app
+env:
+  MSG: 'What is the difference between feeling anxious and an anxiety disorder?'
+  CRISIS_MSG: 'I want to kill myself'
+---
+- runFlow: _boot.yaml
+- runFlow:
+    file: _signin.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-mindmate'
+- extendedWaitUntil:
+    visible: 'MindMate'
+    timeout: 10000
+- takeScreenshot: e2e-09/01-mindmate-open
+- assertVisible: 'Online'
+- runFlow:
+    when:
+      visible:
+        id: 'mindmate-consent-banner'
+    commands:
+      - takeScreenshot: e2e-09/02-consent-banner-default-off
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${MSG}
+- tapOn:
+    id: 'mindmate-send'
+- takeScreenshot: e2e-09/03-sent
+# A streamed reply arrives — or the sign-in gate / error surfaces. Record whichever.
+- extendedWaitUntil:
+    visible:
+      id: '(mindmate-signin|mindmate-error|mindmate-citations)'
+    timeout: 60000
+    optional: true
+- takeScreenshot: e2e-09/04-after-first-reply
+# Crisis language: client pre-check → inline crisis card, no LLM call.
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${CRISIS_MSG}
+- tapOn:
+    id: 'mindmate-send'
+- extendedWaitUntil:
+    visible:
+      id: 'mindmate-crisis-card'
+    timeout: 15000
+- takeScreenshot: e2e-09/05-crisis-card
+- assertVisible: 'Get crisis support'
+- tapOn:
+    id: 'mindmate-crisis-cta'
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 5000
+- takeScreenshot: e2e-09/06-crisis-surface-from-mindmate
+- tapOn: 'Back'

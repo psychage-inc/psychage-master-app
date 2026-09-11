@@ -1,0 +1,204 @@
+# E2E-05 — Moments capture, history, reflection, consented sync (SR-4).
+# Precondition: signed in (e2e-03b state, before its sign-out — the runner re-signs-in).
+# Capture → /history → Settings → Privacy → consent ON → capture (runner verifies the
+# row reached public.moments via REST with the user's JWT) → consent OFF → capture
+# (runner verifies NO new row). The consent-OFF assertion is the SR-4 one.
+#
+#   run-e2e.sh e2e-05-moments-sync -e EMAIL=<addr> -e PASSWORD=<pw> -e LABEL_ON=Quiet -e LABEL_OFF=Flat   (valence-3 words)
+appId: com.psychage.app
+env:
+  LABEL_ON: 'Quiet'
+  LABEL_OFF: 'Flat'
+---
+- runFlow: _boot.yaml
+- runFlow:
+    file: _signin.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+# A signed-in install that never finished onboarding sits on the onboarding welcome.
+- runFlow:
+    when:
+      visible: 'Get started'
+    commands:
+      - tapOn: 'Get started'
+      - extendedWaitUntil:
+          visible: 'Skip for now'
+          timeout: 10000
+      - tapOn: 'Skip for now'
+      - extendedWaitUntil:
+          visible: 'Skip the tour'
+          timeout: 15000
+      - tapOn: 'Skip the tour'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+# Baseline capture (consent default OFF).
+# After one check-in per day the home CTA collapses to a static "Checked in today",
+# so every capture in this flow goes Compass → "Capture how you're feeling" tile.
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-moments'
+- extendedWaitUntil:
+    visible: 'How are you right now?'
+    timeout: 5000
+- assertVisible: 'Private to your account.'
+- takeScreenshot: e2e-05/01-capture-sheet-privacy-line
+# Feeling control. The Skia shape ignores touch on this build and a touch that STARTS
+# on the rail knob resolves knob-relative (always "Very unpleasant"), so tap the rail
+# TRACK to the right of the resting knob instead — that commits valence 3 ("Neutral").
+# Rail bounds on iPhone 17 Pro (402x874pt): x 81..321pt, y ~560pt before selection.
+# Before any scroll the rail sits at ~70% and is CLIPPED (only the knob's top edge
+# shows), so first scroll the sheet body to bring the rail up to ~64%.
+- swipe:
+    start: '50%,50%'
+    end: '50%,30%'
+    duration: 500
+- tapOn:
+    point: '56%,64%'
+- extendedWaitUntil:
+    visible: 'Neutral'
+    timeout: 5000
+# The sheet's ScrollView is shorter than its content: the word chips render clipped
+# under the fold, so scroll the sheet body to reveal them before tapping.
+- swipe:
+    start: '50%,45%'
+    end: '50%,20%'
+    duration: 500
+- tapOn: 'Steady'
+- tapOn: 'Save this moment'
+- extendedWaitUntil:
+    notVisible: 'Save this moment'
+    timeout: 5000
+- tapOn: 'Today'
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-05/02-history
+- runFlow: _boot.yaml
+# Reflection surface (S9) — record what it shows.
+
+# Consent ON.
+- tapOn: 'Account'
+- extendedWaitUntil:
+    visible: 'Accessibility & appearance'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Privacy & your data'
+    direction: DOWN
+    timeout: 10000
+- tapOn: 'Privacy & your data'
+- extendedWaitUntil:
+    visible: 'Back up check-ins to your account'
+    timeout: 5000
+- takeScreenshot: e2e-05/04-privacy-consent-off
+- tapOn:
+    id: 'sync-consent-toggle'
+- takeScreenshot: e2e-05/05-privacy-consent-on
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 5000
+# After one check-in per day the home CTA collapses to a static "Checked in today",
+# so every capture in this flow goes Compass → "Capture how you're feeling" tile.
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-moments'
+- extendedWaitUntil:
+    visible: 'How are you right now?'
+    timeout: 5000
+# Feeling control. The Skia shape ignores touch on this build and a touch that STARTS
+# on the rail knob resolves knob-relative (always "Very unpleasant"), so tap the rail
+# TRACK to the right of the resting knob instead — that commits valence 3 ("Neutral").
+# Rail bounds on iPhone 17 Pro (402x874pt): x 81..321pt, y ~560pt before selection.
+# Before any scroll the rail sits at ~70% and is CLIPPED (only the knob's top edge
+# shows), so first scroll the sheet body to bring the rail up to ~64%.
+- swipe:
+    start: '50%,50%'
+    end: '50%,30%'
+    duration: 500
+- tapOn:
+    point: '56%,64%'
+- extendedWaitUntil:
+    visible: 'Neutral'
+    timeout: 5000
+# The sheet's ScrollView is shorter than its content: the word chips render clipped
+# under the fold, so scroll the sheet body to reveal them before tapping.
+- swipe:
+    start: '50%,45%'
+    end: '50%,20%'
+    duration: 500
+- tapOn: ${LABEL_ON}
+- takeScreenshot: e2e-05/06-capture-with-consent-on
+- tapOn: 'Save this moment'
+- extendedWaitUntil:
+    notVisible: 'Save this moment'
+    timeout: 5000
+# (runner: REST check that a moments row with label LABEL_ON exists for this user)
+
+# Consent OFF.
+- tapOn: 'Account'
+- extendedWaitUntil:
+    visible: 'Accessibility & appearance'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Privacy & your data'
+    direction: DOWN
+    timeout: 10000
+- tapOn: 'Privacy & your data'
+- extendedWaitUntil:
+    visible: 'Back up check-ins to your account'
+    timeout: 5000
+- tapOn:
+    id: 'sync-consent-toggle'
+- takeScreenshot: e2e-05/07-privacy-consent-off-again
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 5000
+# After one check-in per day the home CTA collapses to a static "Checked in today",
+# so every capture in this flow goes Compass → "Capture how you're feeling" tile.
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-moments'
+- extendedWaitUntil:
+    visible: 'How are you right now?'
+    timeout: 5000
+# Feeling control. The Skia shape ignores touch on this build and a touch that STARTS
+# on the rail knob resolves knob-relative (always "Very unpleasant"), so tap the rail
+# TRACK to the right of the resting knob instead — that commits valence 3 ("Neutral").
+# Rail bounds on iPhone 17 Pro (402x874pt): x 81..321pt, y ~560pt before selection.
+# Before any scroll the rail sits at ~70% and is CLIPPED (only the knob's top edge
+# shows), so first scroll the sheet body to bring the rail up to ~64%.
+- swipe:
+    start: '50%,50%'
+    end: '50%,30%'
+    duration: 500
+- tapOn:
+    point: '56%,64%'
+- extendedWaitUntil:
+    visible: 'Neutral'
+    timeout: 5000
+# The sheet's ScrollView is shorter than its content: the word chips render clipped
+# under the fold, so scroll the sheet body to reveal them before tapping.
+- swipe:
+    start: '50%,45%'
+    end: '50%,20%'
+    duration: 500
+- tapOn: ${LABEL_OFF}
+- takeScreenshot: e2e-05/08-capture-with-consent-off
+- tapOn: 'Save this moment'
+- extendedWaitUntil:
+    notVisible: 'Save this moment'
+    timeout: 5000
+# (runner: REST check that NO moments row with label LABEL_OFF exists — SR-4)
+- tapOn: 'Today'
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-05/09-history-final
+- runFlow: _boot.yaml

@@ -1,0 +1,80 @@
+# E2E-02a — Crisis surface, ONLINE (2026-08-29 live-backend verification).
+# From home: count taps to the crisis surface (SR-2 target: ≤1 from every surface),
+# assert the bundled helpline dataset renders, region resolution works, and the region
+# picker (S12) swaps the dataset. Pair with e2e-02-crisis-offline.yaml, which is the
+# same assertions with the network cut (crisis must be offline-complete).
+#
+# Requires: onboarding already completed (run e2e-01 first).
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 20000
+- takeScreenshot: e2e-02/01-home-online
+
+# Tap 1 → crisis surface.
+- tapOn: 'Help now'
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 5000
+- assertVisible: 'Call your local emergency number'
+- assertVisible: 'If you are in danger, or thinking about ending your life, you deserve help right now. You are not alone in this.'
+- takeScreenshot: e2e-02/02-crisis-online-resolved-region
+# At least one helpline row must render for the resolved region.
+- assertVisible: 'Free, confidential helplines are also available in most countries.'
+
+# Region switch (S12) — pick a different country, confirm the dataset changes.
+- tapOn: 'Not in .*'
+- extendedWaitUntil:
+    visible: 'Search'
+    timeout: 5000
+- takeScreenshot: e2e-02/03-region-picker
+- tapOn: 'Search'
+- inputText: 'United King'
+- tapOn: 'United Kingdom.*'
+- extendedWaitUntil:
+    visible: 'United Kingdom'
+    timeout: 5000
+- takeScreenshot: e2e-02/04-crisis-united-kingdom
+- assertVisible: 'Not in United Kingdom?'
+
+# Leave a known region (United States) selected — the override is local-only and
+# gives later flows (Navigator halt, MindMate crisis card) a deterministic helpline set.
+- tapOn: 'Not in United Kingdom?'
+- tapOn: 'Search'
+- inputText: 'United Sta'
+- tapOn: 'United States.*'
+- extendedWaitUntil:
+    visible: 'Not in United States?'
+    timeout: 5000
+- takeScreenshot: e2e-02/05-crisis-united-states
+- tapOn: 'Back'
+- extendedWaitUntil:
+    visible: 'History'
+    timeout: 5000
+
+# Second entry point: Compass tab → tools have their own Help now pill.
+- tapOn: 'Compass'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 5000
+- takeScreenshot: e2e-02/06-compass-has-help-now
+# Third entry point: Settings → Support → "Get help now" (2 taps from home).
+- tapOn: 'Account'
+- extendedWaitUntil:
+    visible: 'Privacy & your data'
+    timeout: 5000
+# "Get help now" is the LAST row of the settings bento — below the fold; scroll to it.
+- scrollUntilVisible:
+    element:
+      text: 'Get help now'
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: e2e-02/07-settings-get-help-now
+- tapOn: 'Get help now'
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 5000
+- takeScreenshot: e2e-02/08-crisis-from-settings
+- tapOn: 'Back'

@@ -1,0 +1,23 @@
+# E2E-09b — MindMate with the network cut mid-conversation (runner cuts the app's
+# backend reachability before this flow). Must degrade gracefully: an honest error /
+# Offline strip, a retry, no hang, and the prior messages still on screen.
+appId: com.psychage.app
+env:
+  MSG: 'Can you explain what rumination is?'
+---
+- extendedWaitUntil:
+    visible: 'MindMate'
+    timeout: 10000
+- takeScreenshot: e2e-09/10-offline-status-strip
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${MSG}
+- tapOn:
+    id: 'mindmate-send'
+- extendedWaitUntil:
+    visible:
+      id: '(mindmate-error|mindmate-retry)'
+    timeout: 45000
+- takeScreenshot: e2e-09/11-offline-error-state
+- assertVisible:
+    id: 'mindmate-retry'

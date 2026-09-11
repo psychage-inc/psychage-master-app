@@ -1,0 +1,91 @@
+# E2E-04 — Anonymous → account migration (2026-08-29 live-backend verification).
+# Fresh state → skip onboarding → capture 3 Moments anonymously → sign up → (runner
+# confirms email + signs in via e2e-03b) → assert the 3 Moments are still present in
+# /history and after a relaunch. NOTE (code-trace): nothing in the app navigates to
+# /(auth)/migrate — the explicit migration push is only reachable by deep link, so this
+# flow also opens psychage://migrate directly and records what it does.
+#
+#   run-e2e.sh e2e-04-anon-migration -e EMAIL=<addr2> -e PASSWORD=<pw2>
+appId: com.psychage.app
+env:
+  NAME: 'E2E Migrator'
+---
+# The Keychain session survives clearState, so sign out BEFORE the fresh boot.
+- runFlow: _signout.yaml
+- runFlow: _boot-fresh.yaml
+- extendedWaitUntil:
+    visible: 'Explore without an account'
+    timeout: 30000
+- takeScreenshot: e2e-04/00-front-door-fresh
+- tapOn: 'Explore without an account'
+- tapOn: 'Get started'
+- extendedWaitUntil:
+    visible: 'Skip for now'
+    timeout: 10000
+- tapOn: 'Skip for now'
+- extendedWaitUntil:
+    visible: 'Skip the tour'
+    timeout: 15000
+- tapOn: 'Skip the tour'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 10000
+
+# Three anonymous Moments. After the first check-in of the day the home CTA collapses to a
+# static "Checked in today", so every capture goes Compass → "Capture how you're feeling".
+- repeat:
+    times: 3
+    commands:
+      - tapOn: 'Compass'
+      - tapOn:
+          id: 'compass-tile-moments'
+      - extendedWaitUntil:
+          visible: 'How are you right now?'
+          timeout: 5000
+      # Feeling control: scroll the sheet body first (rail is clipped at ~70%), then tap the
+      # rail TRACK right of the resting knob → valence 3 ("Neutral"). See e2e-01 comments.
+      - swipe:
+          start: '50%,50%'
+          end: '50%,30%'
+          duration: 500
+      - tapOn:
+          point: '56%,64%'
+      - extendedWaitUntil:
+          visible: 'Neutral'
+          timeout: 5000
+      - swipe:
+          start: '50%,45%'
+          end: '50%,20%'
+          duration: 500
+      - tapOn: 'Quiet'
+      - tapOn: 'Save this moment'
+      - extendedWaitUntil:
+          notVisible: 'Save this moment'
+          timeout: 5000
+- tapOn: 'Today'
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-04/01-history-anonymous-3-moments
+- assertVisible: '3 moments so far'
+- runFlow: _boot.yaml
+
+# Account step. The in-app sign-up form cannot be driven on the iOS simulator (Automatic
+# Strong Password intercepts typing into the newPassword fields — see the report), so the
+# account is created by the runner with the app's exact sign-up payload
+# (sb-probe.sh signup + auth-verify.sh … none) and the app signs IN to it here.
+- runFlow:
+    file: _signin.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- takeScreenshot: e2e-04/03-after-signin
+# The 3 anonymous Moments must still be on the device after sign-in.
+- tapOn: 'Today'
+- tapOn: 'History'
+- extendedWaitUntil:
+    visible: 'Your moments'
+    timeout: 5000
+- takeScreenshot: e2e-04/04-history-after-signin
+- assertVisible: '3 moments so far'

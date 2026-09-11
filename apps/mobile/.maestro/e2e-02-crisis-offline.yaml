@@ -1,0 +1,52 @@
+# E2E-02b — Crisis surface, OFFLINE (2026-08-29 live-backend verification).
+# Same assertions as e2e-02-crisis-online.yaml, run with the simulator's network cut.
+# Maestro cannot toggle iOS-simulator connectivity; the runner (run-e2e.sh) cuts the
+# host's outbound path for the app's backends before invoking this flow and restores it
+# afterwards. Crisis content is bundled (features/crisis/helplines.fixtures.ts) and MUST
+# render identically with zero network.
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: '(Help now|Explore without an account)'
+    timeout: 30000
+- takeScreenshot: e2e-02/10-launch-offline
+# A signed-out install launches on the front door, which has NO crisis affordance (online
+# or offline). Step past it to the first screen that carries the Help-now pill.
+- runFlow:
+    when:
+      visible: 'Explore without an account'
+    commands:
+      - assertNotVisible: 'Help now'
+      - tapOn: 'Explore without an account'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 20000
+- takeScreenshot: e2e-02/10b-first-help-now-offline
+- tapOn: 'Help now'
+- extendedWaitUntil:
+    visible: 'Help now.'
+    timeout: 5000
+- assertVisible: 'Call your local emergency number'
+- assertVisible: 'Free, confidential helplines are also available in most countries.'
+- takeScreenshot: e2e-02/11-crisis-offline
+- tapOn: 'Not in .*'
+- extendedWaitUntil:
+    visible: 'Search'
+    timeout: 5000
+- tapOn: 'Search'
+- inputText: 'United King'
+- tapOn: 'United Kingdom.*'
+- extendedWaitUntil:
+    visible: 'Not in United Kingdom?'
+    timeout: 5000
+- takeScreenshot: e2e-02/12-crisis-offline-united-kingdom
+- tapOn: 'Not in United Kingdom?'
+- tapOn: 'Search'
+- inputText: 'United Sta'
+- tapOn: 'United States.*'
+- extendedWaitUntil:
+    visible: 'Not in United States?'
+    timeout: 5000
+- tapOn: 'Back'
+- takeScreenshot: e2e-02/13-home-offline-after

@@ -1,0 +1,115 @@
+# E2E-03b — Sign-in, session persistence across kill/relaunch, sign-out.
+# Precondition: the account from e2e-03a has been email-confirmed (runner opened the
+# emailed link). THIS IS THE JWT-HOOK TEST: after sign-in the app calls the
+# record_auth_event RPC and any consented write hits RLS policies that require
+# auth.jwt()->>'platform' = 'mobile'. Network-level proof is captured by the runner
+# (token decode + RPC/REST responses) — the UI only shows "signed in as".
+#
+#   run-e2e.sh e2e-03b-signin-persist-signout -e EMAIL=<addr> -e PASSWORD=<pw>
+appId: com.psychage.app
+---
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+# Verify screen may still be up from 03a → back out to the front door / home.
+- runFlow:
+    when:
+      visible: 'Check your email'
+    commands:
+      - runFlow: _boot.yaml
+- runFlow:
+    when:
+      visible: 'Explore without an account'
+    commands:
+      - tapOn: 'Log in'
+# A signed-out install that never finished onboarding lands on the onboarding welcome.
+- runFlow:
+    when:
+      visible: 'Already have a record? Sign in'
+    commands:
+      - tapOn: 'Already have a record? Sign in'
+- runFlow:
+    when:
+      visible: '(Check in — 30 seconds|Update today.s check-in)'
+    commands:
+      - tapOn: 'Account'
+      - tapOn: 'Sign in'
+- extendedWaitUntil:
+    visible: 'Email'
+    timeout: 5000
+- takeScreenshot: e2e-03/04-signin-form
+- tapOn:
+    text: 'Email'
+    index: 1
+- inputText: ${EMAIL}
+- tapOn:
+    text: 'Password'
+    index: 1
+- inputText: ${PASSWORD}
+- pressKey: Enter
+- tapOn:
+    text: 'Sign in'
+    index: 1
+# iOS Keychain may raise "Save Password?" / "Update Password?" over the app — dismiss.
+- extendedWaitUntil:
+    visible: '(Help now|Not Now)'
+    timeout: 20000
+- runFlow:
+    when:
+      visible: 'Not Now'
+    commands:
+      - takeScreenshot: e2e-03/04b-ios-keychain-prompt
+      - tapOn: 'Not Now'
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 20000
+- takeScreenshot: e2e-03/05-after-signin
+- runFlow:
+    when:
+      visible: 'Skip the tour'
+    commands:
+      - tapOn: 'Skip the tour'
+# Settings shows the signed-in address.
+- tapOn: 'Account'
+# SettingsRow puts accessibilityLabel={label} on the row, so the email VALUE is not in the
+# a11y tree (screenshots show it; XCTest cannot). Signed-in state = the Sign out row exists.
+- extendedWaitUntil:
+    visible:
+      id: 'settings-row-sign-out'
+    timeout: 5000
+- takeScreenshot: e2e-03/06-settings-signed-in
+- assertVisible: 'Sign out'
+
+# Kill + relaunch: the secure-store session must survive.
+- stopApp
+- runFlow: _boot.yaml
+- extendedWaitUntil:
+    visible: 'Help now'
+    timeout: 30000
+- takeScreenshot: e2e-03/07-relaunch
+- tapOn: 'Account'
+# SettingsRow puts accessibilityLabel={label} on the row, so the email VALUE is not in the
+# a11y tree (screenshots show it; XCTest cannot). Signed-in state = the Sign out row exists.
+- extendedWaitUntil:
+    visible:
+      id: 'settings-row-sign-out'
+    timeout: 5000
+- takeScreenshot: e2e-03/08-settings-after-relaunch-still-signed-in
+
+# Sign out clears it.
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign out?'
+    timeout: 5000
+- takeScreenshot: e2e-03/09-signout-confirm
+# On the confirm screen the button is the only "Sign out" (the settings row is gone).
+- tapOn: 'Sign out'
+# Sign-out returns to Settings, now showing "Not signed in" + a Sign in row.
+- extendedWaitUntil:
+    visible:
+      id: 'settings-row-sign-in'
+    timeout: 10000
+- takeScreenshot: e2e-03/11-settings-signed-out
+- assertNotVisible:
+    id: 'settings-row-sign-out'

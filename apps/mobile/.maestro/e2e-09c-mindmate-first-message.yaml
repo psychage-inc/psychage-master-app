@@ -1,0 +1,46 @@
+# E2E-09c — MindMate online: sign in, open MindMate, send ONE message, capture the streamed
+# reply. Leaves the chat open so the runner can cut the network and run e2e-09b
+# (mid-conversation offline) directly on top of it. Split out of e2e-09 because the crisis
+# step there crashes the screen (see the report), which makes the offline step unreachable.
+#   run-e2e.sh e2e-09c-mindmate-first-message -e EMAIL=<addr> -e PASSWORD=<pw>
+appId: com.psychage.app
+env:
+  MSG: 'What is the difference between feeling anxious and an anxiety disorder?'
+---
+- runFlow: _signout.yaml
+- runFlow:
+    file: _signin.yaml
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- runFlow:
+    when:
+      visible: 'Get started'
+    commands:
+      - tapOn: 'Get started'
+      - extendedWaitUntil:
+          visible: 'Skip for now'
+          timeout: 10000
+      - tapOn: 'Skip for now'
+      - extendedWaitUntil:
+          visible: 'Skip the tour'
+          timeout: 15000
+      - tapOn: 'Skip the tour'
+- tapOn: 'Compass'
+- tapOn:
+    id: 'compass-tile-mindmate'
+- extendedWaitUntil:
+    visible: 'MindMate'
+    timeout: 10000
+- assertVisible: 'Online'
+- tapOn:
+    id: 'mindmate-input'
+- inputText: ${MSG}
+- tapOn:
+    id: 'mindmate-send'
+- extendedWaitUntil:
+    visible:
+      id: '(mindmate-signin|mindmate-error|mindmate-citations)'
+    timeout: 60000
+    optional: true
+- takeScreenshot: e2e-09/20-online-reply-before-cut
