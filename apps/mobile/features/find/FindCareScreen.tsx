@@ -8,7 +8,6 @@
 //   • profile details  → getProviderById
 //   • result count     → real total_count (count-up animation, reduce-motion safe)
 //   • save / compare   → bookmarks (auth-gated; anon tap → sign-up)
-//   • "Use my location"→ real expo-location (one-shot, never persisted)
 //   • home location    → remembered across launches (useDirectoryLocation)
 //   • per-state / city / type counts → real facet RPCs (directory_facets), grouped
 //     on the SAME columns search_providers_v3 filters on, so a count never disagrees
@@ -46,7 +45,6 @@ import { colors } from '@/lib/colors';
 
 import { telUrl } from '@/features/directory/contact';
 import { useCityCounts, useProviderSearch, useProviderTypes, useStateCounts, useTypeCounts } from '@/features/directory/hooks';
-import { requestAndGetCoords } from '@/features/directory/location';
 import { cleanDisplayName } from '@/features/directory/mapping';
 import { getProviderById } from '@/features/directory/queries';
 import { ABBR, STATES } from '@/features/directory/states';
@@ -76,18 +74,6 @@ const TYPE_ICON: Record<string, typeof Users> = {
   'marriage-family-therapist': Users,
 };
 const iconForType = (slug: string) => TYPE_ICON[slug] ?? Users;
-
-// Resolve a reverse-geocoded region (full name "California" OR 2-letter "CA") to the
-// canonical state name the directory filters on. Providers carry no coordinates, so
-// "Use my location" searches by STATE — this maps the device region onto one.
-function resolveStateName(region: string | null): string | null {
-  if (!region) return null;
-  const direct = STATES.find((s) => s.toLowerCase() === region.trim().toLowerCase());
-  if (direct) return direct;
-  const up = region.trim().toUpperCase();
-  if (up.length === 2) return STATES.find((s) => ABBR[s] === up) ?? null;
-  return null;
-}
 
 function formatVerified(iso: string | null): string | null {
   if (!iso) return null;
@@ -264,7 +250,7 @@ export default function FindCareScreen() {
   const [cityQ, setCityQ] = useState('');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [sort, setSort] = useState<'relevance' | 'name' | 'distance'>('relevance');
+  const [sort, setSort] = useState<'relevance' | 'name'>('relevance');
   const [sheet, setSheet] = useState<null | 'sort' | 'addProvider'>(null);
 
   // My providers — local-first (works signed-out), used for save + compare + call list.
@@ -314,9 +300,8 @@ export default function FindCareScreen() {
   }, [step, entryStep, city, loc]);
 
   const stateAbbr = loc ? ABBR[loc] : undefined;
-  // No lat/lng/radius: provider_locations carry no coordinates, so a geo-radius search
-  // returns nothing. The directory searches by state (resolved from device location
-  // for "Use my location"); distance sort is likewise unbacked and not offered.
+  // Search scope is State, City and Provider type only — the app never reads device
+  // location and never sends coordinates.
   const params = useMemo<ProviderSearchParams>(
     () => ({
       query: debounced || undefined,
@@ -343,7 +328,7 @@ export default function FindCareScreen() {
   const stateTotal = stateAbbr ? stateCounts.data?.[stateAbbr] : undefined;
 
   const cityLabel = city === 'all' ? `All ${loc}` : city;
-  const locLabel = loc ?? 'Near you';
+  const locLabel = loc ?? 'Choose a state';
 
   const enter = (ms = 0) => (reduce ? undefined : FadeIn.duration(280).delay(ms));
 
@@ -355,30 +340,6 @@ export default function FindCareScreen() {
     setTypeSel(t);
     if (loc) persist(loc, city);
     setStep('results');
-  };
-
-  const onUseLocation = async () => {
-    const res = await requestAndGetCoords();
-    if (res.status !== 'granted') {
-      setStep('manual');
-      return;
-    }
-    // Non-US device → the out-of-US state (the directory is US-only).
-    if (res.countryCode && res.countryCode !== 'US') {
-      setStep('outside');
-      return;
-    }
-    // US: resolve the region to a state and search by it (no provider coordinates exist
-    // for a radius search). Unresolvable region → fall back to manual state selection.
-    const stateName = resolveStateName(res.region);
-    if (stateName) {
-      setLoc(stateName);
-      setCity('all');
-      persist(stateName, 'all');
-      setStep('type');
-    } else {
-      setStep('manual');
-    }
   };
 
   const isSaved = (id: string) => my.isSaved(id);
@@ -409,9 +370,8 @@ export default function FindCareScreen() {
           <Text className="font-display text-4xl text-text-primary dark:text-text-primary-dark mt-1.5 mb-2.5">Find care</Text>
           <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-base leading-6 mb-2">Browse providers listed in the public NPI registry, licensed in your state. A listing is information, not a recommendation or endorsement by Psychage.</Text>
           <View className="h-[120px] items-center justify-center my-4 bg-surface-accent dark:bg-surface-accent-dark rounded-[18px]"><BadgeCheck size={30} color={teal} /></View>
-          <Primary label="Use my location" onPress={onUseLocation} />
-          <Tap onPress={() => setStep('manual')}><View className="py-4 items-center"><Text className="font-sans-bold text-base text-primary dark:text-primary-dark">Enter my state instead</Text></View></Tap>
-          <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-xs text-center mt-1.5">State sets who can legally see you. Change it anytime.</Text>
+          <Primary label="Choose my state" onPress={() => setStep('manual')} />
+          <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-xs text-center mt-4">State sets who can legally see you. Change it anytime.</Text>
         </View>
       </SafeAreaView>
     );
@@ -568,8 +528,7 @@ export default function FindCareScreen() {
   }
 
   /* ============================ OUTSIDE US ============================ */
-  // Reached when "Use my location" reverse-geocodes to a non-US country, or via the
-  // manual "I'm outside the United States" option. A designed, warm state (mascot is
+  // Reached via the manual "I'm outside the United States" option. A designed, warm state (mascot is
   // allowed here — this is a directory-coverage surface, not a crisis surface) that
   // still offers the full US directory and keeps crisis help one tap away.
   if (step === 'outside')
@@ -693,7 +652,6 @@ export default function FindCareScreen() {
     const sv = isSaved(p.id);
     const name = cleanDisplayName(p.display_name) || p.display_name;
     const place = [p.primary_city, p.primary_state].filter(Boolean).join(', ');
-    const dist = p.distance_miles != null ? ` · ${p.distance_miles.toFixed(1)} mi` : '';
     return (
       <Animated.View entering={enter(Math.min(index * 40, 400))} layout={LinearTransition.springify().damping(20).stiffness(300)} className="mb-4">
         <Tap activeScale={0.97} onPress={() => { recordRecentlyViewed({ id: p.id, name, photoUrl: null }); setActiveId(p.id); setStep('profile'); }}>
@@ -704,7 +662,7 @@ export default function FindCareScreen() {
                 <View className="flex-row items-center gap-1.5 flex-wrap"><Text className="font-display text-lg text-text-primary dark:text-text-primary-dark">{name}</Text>{p.credentials_suffix ? <Text className="font-sans-medium text-text-secondary dark:text-text-secondary-dark text-[13px]">{p.credentials_suffix}</Text> : null}</View>
                 <Text className="font-sans text-text-secondary dark:text-text-secondary-dark text-[14px] mt-0.5">{p.provider_type_label}</Text>
                 <View className="flex-row items-center gap-2.5 mt-2.5 flex-wrap">
-                  {place ? <View className="flex-row items-center gap-1.5"><MapPin size={13} color={soft} /><Text className="font-sans text-[13px] text-text-secondary dark:text-text-secondary-dark">{place}{dist}</Text></View> : null}
+                  {place ? <View className="flex-row items-center gap-1.5"><MapPin size={13} color={soft} /><Text className="font-sans text-[13px] text-text-secondary dark:text-text-secondary-dark">{place}</Text></View> : null}
                   <View className="flex-row items-center gap-1 bg-surface-active dark:bg-surface-active-dark rounded-full px-2 py-0.5 border border-border/60 dark:border-border-dark/60"><Text className="font-sans-medium text-[12px] text-text-secondary dark:text-text-secondary-dark">NPI registry</Text></View>
                 </View>
               </View>
@@ -779,7 +737,7 @@ export default function FindCareScreen() {
         </Animated.View>
       ) : null}
 
-      <SortSheet visible={sheet === 'sort'} value={sort} geo={false} onSelect={(v) => { setSort(v); setSheet(null); }} onClose={() => setSheet(null)} />
+      <SortSheet visible={sheet === 'sort'} value={sort} onSelect={(v) => { setSort(v); setSheet(null); }} onClose={() => setSheet(null)} />
     </SafeAreaView>
   );
 }
@@ -983,11 +941,11 @@ const CompareStep = React.memo(function CompareStep({ ids, onBack, onRemove }: {
 });
 
 /* ----------------------------- sheets ----------------------------- */
-function SortSheet({ visible, value, geo, onSelect, onClose }: { visible: boolean; value: string; geo: boolean; onSelect: (v: 'relevance' | 'name' | 'distance') => void; onClose: () => void }) {
+function SortSheet({ visible, value, onSelect, onClose }: { visible: boolean; value: string; onSelect: (v: 'relevance' | 'name') => void; onClose: () => void }) {
   const { colorScheme } = useColorScheme();
   const ink = colorScheme === 'dark' ? colors.text.primary.dark : colors.text.primary.light;
   const teal = colorScheme === 'dark' ? colors.teal[400] : colors.teal[600];
-  const opts: ['relevance' | 'name' | 'distance', string][] = [['relevance', 'Relevance'], ...(geo ? ([['distance', 'Nearest']] as ['distance', string][]) : []), ['name', 'Name A–Z']];
+  const opts: ['relevance' | 'name', string][] = [['relevance', 'Relevance'], ['name', 'Name A–Z']];
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>

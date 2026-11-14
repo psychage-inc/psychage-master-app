@@ -93,5 +93,6 @@ describe('mapRpcRow — flattened RPC row → card', () => {
     expect(card.credentials_suffix).toBe('Ph.D.');
     expect(card.specialty_tags[0]?.label).toBe('Anxiety');
     expect(card.competency_tags).toEqual([]); // defaulted, not fabricated
+    expect(Object.hasOwn(card, 'is_accepting_patients')).toBe(false); // never surfaced
   });
 });

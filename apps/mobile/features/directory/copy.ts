@@ -13,8 +13,6 @@ export const DIRECTORY_COPY = {
   searchPlaceholder: 'Search by name, specialty, or place',
   searchAccessibilityLabel: 'Search the provider directory',
   filtersButton: 'Filters',
-  nearMe: 'Near me',
-  locationDenied: 'Location off — searching by your other filters.',
   emptyPrompt: 'Search or add a filter to browse the directory.',
   recentlyViewed: 'Recently viewed',
   scopeAllStates: 'All states',
@@ -26,7 +24,6 @@ export const DIRECTORY_COPY = {
   sortNote: 'Sorting changes order only. It is not a ranking of quality.',
   sortRelevance: 'Relevance',
   sortName: 'Name (A–Z)',
-  sortNearest: 'Nearest',
 
   // Thin-coverage banner (real total). CT-pending.
   coverageNote: (place: string, n: number) => `Limited coverage in ${place} (${n}).`,
@@ -64,7 +61,6 @@ export const DIRECTORY_COPY = {
   badgeUnclaimed: 'Listed',
   telehealth: 'Telehealth',
   inPerson: 'In person',
-  acceptingPatients: 'Accepting new patients',
 
   // Provenance / credentials (detail). Informational — provider's own registry
   // data, not a Psychage endorsement. CT-pending.

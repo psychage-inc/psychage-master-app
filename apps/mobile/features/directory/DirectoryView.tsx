@@ -17,7 +17,6 @@ import { useRecentlyViewed } from '@/lib/use-recently-viewed';
 import { DirectoryFilters, type FilterDraft } from './DirectoryFilters';
 import { DIRECTORY_COPY } from './copy';
 import { hasActiveSearch, useFeaturedProviders, useProviderSearch, useSpecialties } from './hooks';
-import { DEFAULT_RADIUS_MILES, requestAndGetCoords, type Coords } from './location';
 import { DirectorySkeleton } from './DirectorySkeleton';
 import { ProviderCard } from './ProviderCard';
 import { RecentlyViewedRail } from './RecentlyViewedRail';
@@ -40,7 +39,6 @@ const EMPTY_FILTERS: FilterDraft = {
   specialtySlugs: [],
   telehealth: false,
   inPerson: false,
-  accepting: false,
 };
 
 // `embedded` = rendered as the Find tab root (the tabs GlobalHeader already sits
@@ -71,8 +69,6 @@ export function DirectoryView({
     state: initialState ?? '',
   }));
   const [city] = useState<string>(initialCity ?? '');
-  const [coords, setCoords] = useState<Coords | null>(null);
-  const [locNotice, setLocNotice] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [sort, setSort] = useState<SortOption>('relevance');
@@ -95,14 +91,10 @@ export function DirectoryView({
       specialty_slugs: filters.specialtySlugs.length ? filters.specialtySlugs : undefined,
       telehealth: filters.telehealth || undefined,
       in_person: filters.inPerson || undefined,
-      accepting_patients: filters.accepting || undefined,
-      latitude: coords?.latitude,
-      longitude: coords?.longitude,
-      radius_miles: coords ? DEFAULT_RADIUS_MILES : undefined,
       sort_by: sort,
       per_page: 20,
     }),
-    [debounced, filters, city, coords, sort],
+    [debounced, filters, city, sort],
   );
 
   const active = hasActiveSearch(params);
@@ -111,34 +103,15 @@ export function DirectoryView({
 
   const providers = active ? search.providers : (featured.data ?? []);
   const loading = active ? search.isLoading : featured.isLoading;
-  // searchProviders deliberately THROWS when the backend is unreachable (a genuine
-  // zero-result resolves to an empty list), so an outage must render as an error
-  // with a retry — never as "No matching providers".
+  // searchProviders THROWS when the RPC fails (a genuine zero-result resolves to an
+  // empty list), so an outage renders as an error with a retry that re-runs the
+  // same search — never as "No matching providers" and never as other data.
   const errored = active && search.isError;
   const filterCount =
     (filters.state ? 1 : 0) +
     filters.specialtySlugs.length +
     (filters.telehealth ? 1 : 0) +
-    (filters.inPerson ? 1 : 0) +
-    (filters.accepting ? 1 : 0);
-
-  const toggleNearMe = async () => {
-    if (coords) {
-      setCoords(null);
-      setLocNotice(false);
-      if (sort === 'distance') setSort('relevance');
-      return;
-    }
-    const res = await requestAndGetCoords();
-    if (res.status === 'granted') {
-      setCoords(res.coords);
-      setLocNotice(false);
-      setSort('distance'); // a geo search defaults to nearest-first
-    } else {
-      // Coords are used only for the query; nothing is persisted or logged.
-      setLocNotice(true);
-    }
-  };
+    (filters.inPerson ? 1 : 0);
 
   // Quick specialty suggestions under the search box — tapping one runs a fast
   // slug-scoped search instead of a free-text scan. Hidden once a specialty is set.
@@ -234,31 +207,8 @@ export function DirectoryView({
           />
         </View>
 
-        {/* Near me + Filters */}
+        {/* Filters + Sort */}
         <View className="flex-row items-center gap-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: !!coords }}
-            accessibilityLabel={t.nearMe}
-            onPress={toggleNearMe}
-            testID="directory-near-me"
-            className={`min-h-[36px] flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 ${
-              coords ? 'border-primary dark:border-primary-dark' : 'border-border dark:border-border-dark'
-            }`}
-          >
-            <MapPin
-              size={16}
-              color={coords ? colors.primary.default.light : colors.charcoal[500]}
-              strokeWidth={1.75}
-            />
-            <Text
-              variant="caption"
-              className={coords ? 'text-primary dark:text-primary-dark' : 'text-text-secondary dark:text-text-secondary-dark'}
-            >
-              {t.nearMe}
-            </Text>
-          </Pressable>
-
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.filtersButton}
@@ -305,12 +255,6 @@ export function DirectoryView({
               </Pressable>
             ))}
           </View>
-        ) : null}
-
-        {locNotice ? (
-          <Text variant="caption" className="text-text-tertiary dark:text-text-tertiary-dark">
-            {t.locationDenied}
-          </Text>
         ) : null}
 
         {active && search.dropped?.includes('state') ? (
@@ -455,7 +399,6 @@ export function DirectoryView({
       <SortSheet
         visible={sortOpen}
         value={sort}
-        geoEnabled={!!coords}
         onSelect={(next) => {
           setSort(next);
           setSortOpen(false);

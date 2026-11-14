@@ -14,6 +14,12 @@ jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(),
   hideAsync: jest.fn(),
 }));
+// The minimum-version gate wraps the routes; make it pass (installed == minimum)
+// so the smoke still exercises the provider chain beneath it.
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '1.1.0' }));
+jest.mock('@/lib/supabase', () => ({
+  getSupabaseClient: () => ({ rpc: () => Promise.resolve({ data: '1.1.0', error: null }) }),
+}));
 jest.mock('expo-router', () => {
   // Return children directly — no JSX / createElement in the factory, or
   // NativeWind's babel transform leaks an out-of-scope css-interop ref into it

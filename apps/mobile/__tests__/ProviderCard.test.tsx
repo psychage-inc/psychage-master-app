@@ -28,7 +28,6 @@ const base: ProviderCardData = {
   npi_number: null,
   telehealth_available: true,
   in_person_available: false,
-  is_accepting_patients: true,
   verified_at: null,
   trust_score_cached: null,
   provider_type_slug: 'psychologist',
@@ -53,13 +52,22 @@ describe('ProviderCard', () => {
     expect(screen.getByText('Psychologist · Reseda, CA')).toBeTruthy();
     expect(screen.getByText('Telehealth')).toBeTruthy();
     expect(screen.getByText('Anxiety')).toBeTruthy();
-    expect(screen.getByText('Accepting new patients')).toBeTruthy();
     expect(screen.getByText('Listed')).toBeTruthy(); // seeded → "Listed", not an endorsement
   });
 
-  it('shows the distance only on a geo search', () => {
-    renderWithProviders(<ProviderCard provider={{ ...base, distance_miles: 4.2 }} onPress={() => {}} />, opts);
-    expect(screen.getByText('Psychologist · Reseda, CA · 4.2 mi')).toBeTruthy();
+  it('never shows a distance, even if a row carries one', () => {
+    const withDistance = { ...base, distance_miles: 4.2 } as ProviderCardData;
+    renderWithProviders(<ProviderCard provider={withDistance} onPress={() => {}} />, opts);
+    expect(screen.getByText('Psychologist · Reseda, CA')).toBeTruthy();
+    expect(screen.queryByText(/ mi$/)).toBeNull();
+  });
+
+  it('never shows or announces "accepting patients", even for a stale row that carries it', () => {
+    const stale = { ...base, is_accepting_patients: true } as ProviderCardData;
+    renderWithProviders(<ProviderCard provider={stale} onPress={() => {}} />, opts);
+    expect(screen.queryByText(/accepting/i)).toBeNull();
+    const label = screen.getByTestId('provider-card-p1').props.accessibilityLabel as string;
+    expect(label).not.toMatch(/accepting/i);
   });
 
   it('omits absent fields without inventing them', () => {

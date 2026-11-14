@@ -111,7 +111,7 @@ describe('CrisisView (S11)', () => {
     expect(onChangeRegion).toHaveBeenCalled();
   });
 
-  it('omits the precise-location control by default (crisis never auto-prompts)', () => {
+  it('offers no location control — region comes from locale or the manual picker only', () => {
     renderWithProviders(
       <CrisisView
         regionName="India"
@@ -122,27 +122,7 @@ describe('CrisisView (S11)', () => {
       />,
       { haptics: true },
     );
-    // The region override stays; the opt-in control is absent unless wired.
     expect(screen.getByLabelText('Not in India?')).toBeTruthy();
-    expect(screen.queryByLabelText('Use my precise location')).toBeNull();
-  });
-
-  it('renders the opt-in precise-location control and fires it on tap when wired', () => {
-    const onUsePreciseLocation = jest.fn();
-    renderWithProviders(
-      <CrisisView
-        regionName="India"
-        emergencyNumber="112"
-        helplines={[]}
-        onBack={() => {}}
-        onChangeRegion={() => {}}
-        onUsePreciseLocation={onUsePreciseLocation}
-      />,
-      { haptics: true },
-    );
-    fireEvent.press(screen.getByLabelText('Use my precise location'));
-    expect(onUsePreciseLocation).toHaveBeenCalled();
-    // "Not in [country]?" is never removed or gated by the opt-in control.
-    expect(screen.getByLabelText('Not in India?')).toBeTruthy();
+    expect(screen.queryByText(/location/i)).toBeNull();
   });
 });

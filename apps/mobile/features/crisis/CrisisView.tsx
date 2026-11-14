@@ -34,14 +34,6 @@ export interface CrisisViewProps {
   readonly onChangeRegion: () => void;
   /** Injectable dialer for render tests; defaults to the platform dialer downstream. */
   readonly dial?: Dial;
-  /**
-   * Opt-in precise-location handler. When provided, render a single plain control that
-   * requests location permission ON TAP to sharpen the country. Absent by default — crisis
-   * never auto-prompts and is never gated on permission (SR-2). PLAIN register: ink only.
-   */
-  readonly onUsePreciseLocation?: () => void;
-  /** Disables the precise-location control while a request is in flight. */
-  readonly preciseBusy?: boolean;
 }
 
 export function CrisisView({
@@ -51,8 +43,6 @@ export function CrisisView({
   onBack,
   onChangeRegion,
   dial,
-  onUsePreciseLocation,
-  preciseBusy = false,
 }: CrisisViewProps) {
   const { colorScheme } = useColorScheme();
   // Ink (not teal) is the only accent in the crisis register.
@@ -121,25 +111,6 @@ export function CrisisView({
           </Text>
         </Pressable>
 
-        {onUsePreciseLocation ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={CRISIS_COPY.usePreciseLocation}
-            accessibilityState={{ disabled: preciseBusy }}
-            disabled={preciseBusy}
-            onPress={onUsePreciseLocation}
-            hitSlop={8}
-            className="min-h-[44px] justify-center active:scale-[0.98]"
-            style={({ pressed }) => ({ opacity: pressed || preciseBusy ? 0.7 : 1 })}
-          >
-            <Text
-              variant="caption"
-              className="text-text-secondary underline dark:text-text-secondary-dark"
-            >
-              {CRISIS_COPY.usePreciseLocation}
-            </Text>
-          </Pressable>
-        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

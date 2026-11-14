@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the shared anon client so the cascade is exercised without a network.
+// Mock the shared anon client so the search path is exercised without a network.
 vi.mock('@/lib/supabase', () => ({ getSupabaseClient: vi.fn() }));
 
-import { getProviderById, searchProviders } from '@/features/directory/queries';
+import {
+  buildSearchRpcArgs,
+  getProviderById,
+  hasSearchScope,
+  searchProviders,
+} from '@/features/directory/queries';
+import type { ProviderSearchParams } from '@/features/directory/types';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const clientMock = getSupabaseClient as unknown as ReturnType<typeof vi.fn>;
@@ -24,13 +30,10 @@ beforeEach(() => {
   clientMock.mockReset();
 });
 
-describe('searchProviders — fidelity + cascade', () => {
-  it('returns an EMPTY result (never fabricates) when no client is configured', async () => {
+describe('searchProviders — RPC only, no fallback', () => {
+  it('throws (error state + retry) when no client is configured — never a silent empty', async () => {
     clientMock.mockReturnValue(null);
-    const res = await searchProviders({ query: 'swanson' });
-    expect(res.providers).toEqual([]);
-    expect(res.total_count).toBe(0);
-    expect(res.has_more).toBe(false);
+    await expect(searchProviders({ query: 'swanson' })).rejects.toThrow();
   });
 
   it('refuses a wholly-unscoped call: returns EMPTY without hitting the RPC (no 423k-row scan)', async () => {
@@ -56,16 +59,14 @@ describe('searchProviders — fidelity + cascade', () => {
     expect(res.has_more).toBe(true); // 0 + 20 < 40
   });
 
-  it('throws (so the query retries + surfaces isError) when both paths fail — never a silent empty', async () => {
-    clientMock.mockReturnValue({
-      rpc: vi.fn().mockResolvedValue({ data: null, error: { message: 'timeout' } }),
-      // no state/city → skips the location pre-scope; the providers query errors too
-      from: vi.fn(() => builder({ data: null, error: { message: 'boom' } })),
-    });
+  it('throws on an RPC error and never queries the providers table directly', async () => {
+    const from = vi.fn(() => builder({ data: [{ id: 'other' }], error: null }));
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'timeout' } });
+    clientMock.mockReturnValue({ rpc, from });
 
-    // A transient failure must NOT look like "0 results" — it rejects so TanStack
-    // Query can retry it and the UI can show a recoverable error (NO mock fabrication).
-    await expect(searchProviders({ query: 'swanson' })).rejects.toThrow();
+    await expect(searchProviders({ query: 'swanson', state: 'CA' })).rejects.toThrow(/timeout/);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it('returns a genuine empty (no throw) when the RPC succeeds with zero rows', async () => {
@@ -73,6 +74,63 @@ describe('searchProviders — fidelity + cascade', () => {
     const res = await searchProviders({ state: 'CA' });
     expect(res.providers).toEqual([]);
     expect(res.total_count).toBe(0);
+  });
+
+  it('sends State, City and Provider type — and no coordinate, radius or accepting keys at all', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    clientMock.mockReturnValue({ rpc });
+    // Cast: a stale caller passing the removed fields must still not leak them.
+    const legacy = {
+      state: 'CA',
+      city: 'Reseda',
+      provider_type_ids: ['t1'],
+      latitude: 34.2,
+      longitude: -118.5,
+      radius_miles: 25,
+      accepting_patients: true,
+    } as ProviderSearchParams;
+    await searchProviders(legacy);
+
+    const [fn, args] = rpc.mock.calls[0] as [string, Record<string, unknown>];
+    expect(fn).toBe('search_providers_v3');
+    expect(args.p_state).toBe('CA');
+    expect(args.p_city).toBe('Reseda');
+    expect(args.p_provider_type_ids).toEqual(['t1']);
+    for (const key of ['p_latitude', 'p_longitude', 'p_radius_miles', 'p_accepting']) {
+      expect(Object.hasOwn(args, key)).toBe(false);
+    }
+  });
+
+  it('never offers a distance sort to the RPC', () => {
+    const args = buildSearchRpcArgs({ state: 'CA', sort_by: 'name' }, 20, 0);
+    expect(args.p_sort).toBe('name');
+    expect(buildSearchRpcArgs({ state: 'CA' }, 20, 0).p_sort).toBe('relevance');
+  });
+
+  it('city+state with zero hits re-runs the SAME RPC city-only and reports the dropped filter', async () => {
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({
+        data: [{ id: 'p1', display_name: 'A', status: 'seeded', tier: 'free', total_count: 1 }],
+        error: null,
+      });
+    const from = vi.fn();
+    clientMock.mockReturnValue({ rpc, from });
+
+    const res = await searchProviders({ state: 'CA', city: 'Reseda' });
+    expect(res.dropped_filters).toEqual(['state']);
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect((rpc.mock.calls[1] as [string, Record<string, unknown>])[1].p_state).toBeNull();
+    expect(from).not.toHaveBeenCalled();
+  });
+});
+
+describe('hasSearchScope', () => {
+  it('does not treat coordinates or accepting as a scope', () => {
+    expect(hasSearchScope({ latitude: 1, longitude: 2, accepting_patients: true } as ProviderSearchParams)).toBe(false);
+    expect(hasSearchScope({ state: 'CA' })).toBe(true);
+    expect(hasSearchScope({ provider_type_ids: ['t1'] })).toBe(true);
   });
 });
 

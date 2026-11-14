@@ -43,20 +43,12 @@ export const ProviderCard = memo(function ProviderCard({
 }) {
   const name = cleanDisplayName(provider.display_name) || provider.display_name;
   const place = [provider.primary_city, provider.primary_state].filter(Boolean).join(', ');
-  const distance =
-    provider.distance_miles != null ? `${provider.distance_miles.toFixed(1)} mi` : null;
-  const typeLine = [provider.provider_type_label, place, distance].filter(Boolean).join(' · ');
+  const typeLine = [provider.provider_type_label, place].filter(Boolean).join(' · ');
   const badge = badgeLabel(provider.status, provider.verified_at);
   const specialties = provider.specialty_tags.slice(0, 3);
 
-  // One node for the screen reader — name, creds, type/place, badge, accepting.
-  const a11y = [
-    name,
-    provider.credentials_suffix,
-    typeLine,
-    badge,
-    provider.is_accepting_patients ? t.acceptingPatients : null,
-  ]
+  // One node for the screen reader — name, creds, type/place, badge.
+  const a11y = [name, provider.credentials_suffix, typeLine, badge]
     .filter(Boolean)
     .join(', ');
 
@@ -91,18 +83,8 @@ export const ProviderCard = memo(function ProviderCard({
             </Text>
           ) : null}
 
-          {(specialties.length > 0 ||
-            provider.telehealth_available ||
-            provider.in_person_available ||
-            provider.is_accepting_patients) && (
+          {(specialties.length > 0 || provider.telehealth_available || provider.in_person_available) && (
             <View className="flex-row flex-wrap items-center gap-1.5 pt-0.5">
-              {provider.is_accepting_patients ? (
-                <View className="rounded-full bg-surface-accent px-2 py-0.5 dark:bg-surface-accent-dark">
-                  <Text variant="caption" className="text-primary dark:text-primary-dark">
-                    {t.acceptingPatients}
-                  </Text>
-                </View>
-              ) : null}
               {provider.telehealth_available ? <Tag label={t.telehealth} /> : null}
               {provider.in_person_available ? <Tag label={t.inPerson} /> : null}
               {specialties.map((s) => (

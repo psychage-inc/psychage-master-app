@@ -1,6 +1,6 @@
 // Server-state hooks for the directory (TanStack Query — stack rule: server data
 // never lives in useState). The directory is filter-first: the paginated search
-// query only runs once the user has set at least one filter / text / geo (the
+// query only runs once the user has set at least one filter / text (the
 // RPC times out on a wholly-unscoped scan of the 423k-row table), and the default
 // browse surface uses a small featured slice.
 
@@ -25,9 +25,7 @@ export function hasActiveSearch(p: ProviderSearchParams): boolean {
       p.city ||
       p.specialty_slugs?.length ||
       p.telehealth ||
-      p.in_person ||
-      p.accepting_patients ||
-      p.latitude != null,
+      p.in_person,
   );
 }
 
@@ -39,8 +37,9 @@ export function useProviderSearch(params: ProviderSearchParams, enabled: boolean
     queryFn: ({ pageParam }) => searchProviders({ ...params, page: pageParam as number }),
     getNextPageParam: (last) => (last.has_more ? last.page + 1 : undefined),
     staleTime: 60_000,
-    // searchProviders now throws when the backend is unreachable (vs a silent empty),
-    // so a transient RPC timeout is retried instead of being cached as "0 results".
+    // searchProviders throws when the RPC fails (there is no fallback source), so a
+    // transient timeout is retried instead of being cached as "0 results"; a
+    // persistent failure surfaces isError → the directory's error state + retry.
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });

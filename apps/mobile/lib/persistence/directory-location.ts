@@ -9,9 +9,8 @@
 // 2-char code the search param needs) and an optional CITY string.
 //
 // PRIVACY: this is a user-chosen browse scope (a US state / city name), NOT geo
-// coordinates and NOT symptom/mood/navigator state. The "near me" lat/long path
-// (features/directory/location.ts) remains un-persisted by contract. Do not add
-// coordinates to this store.
+// coordinates and NOT symptom/mood/navigator state. The app never reads device
+// location. Do not add coordinates to this store.
 //
 // `configured` separates "the user finished the one-time setup" from "the user
 // picked a state" — choosing "Browse all states" completes setup with a null

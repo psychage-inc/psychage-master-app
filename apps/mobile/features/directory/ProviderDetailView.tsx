@@ -250,11 +250,10 @@ export function ProviderDetailView({ id }: { id: string }) {
           </View>
         </View>
 
-        {/* Modality + accepting */}
-        {(p.telehealth_available || p.in_person_available || p.is_accepting_patients) && (
+        {/* Modality */}
+        {(p.telehealth_available || p.in_person_available) && (
           <TagRow
             items={[
-              ...(p.is_accepting_patients ? [t.acceptingPatients] : []),
               ...(p.telehealth_available ? [t.telehealth] : []),
               ...(p.in_person_available ? [t.inPerson] : []),
             ]}
