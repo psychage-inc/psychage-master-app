@@ -85,7 +85,6 @@ export interface ProviderRow {
   phone: string | null;
   email: string | null;
   appointment_url: string | null;
-  is_accepting_patients: boolean;
   telehealth_available: boolean;
   in_person_available: boolean;
   verified_at: string | null;
@@ -144,7 +143,6 @@ export interface ProviderCardData {
   npi_number: string | null;
   telehealth_available: boolean;
   in_person_available: boolean;
-  is_accepting_patients: boolean;
   verified_at: string | null;
   trust_score_cached: number | null;
   provider_type_slug: string;

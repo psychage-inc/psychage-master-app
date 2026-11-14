@@ -82,6 +82,8 @@ describe('S27 provider detail', () => {
 
     expect(await screen.findByText('BRIAN SWANSON')).toBeTruthy(); // cleaned, matches web
     expect(screen.getByText('Works with adults on anxiety.')).toBeTruthy();
+    // The fixture row still carries is_accepting_patients: true; it is never shown.
+    expect(screen.queryByText(/accepting/i)).toBeNull();
 
     fireEvent.press(screen.getByTestId('provider-call'));
     expect(dialMock).toHaveBeenCalledWith('tel:8189719446');
