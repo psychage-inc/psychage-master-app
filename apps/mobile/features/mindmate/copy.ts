@@ -4,11 +4,7 @@
 
 export const MINDMATE_COPY = {
   title: 'MindMate',
-  // Sets expectations up front: educator, not therapist; no diagnosis.
-  intro:
-    "Hi, I'm MindMate. I share mental-health education and help you find reliable resources. " +
-    "I'm not a therapist or doctor, and I don't diagnose — but I'm here to help you make sense " +
-    'of what you might be feeling. What would you like to understand?',
+  // The session greeting (counsel text) lives in consent-copy.ts.
   inputPlaceholder: 'Share what’s on your mind',
   sendLabel: 'Send message',
   // Calm, non-clinical states.
@@ -35,4 +31,16 @@ export const MINDMATE_COPY = {
   consentBody:
     'Keep your chats so you can pick up where you left off. They’re saved to your account and only you can read them. Off by default — you can turn this off anytime.',
   consentToggleLabel: 'Save my conversations',
+  // Consent-gate states + Settings > Privacy > MindMate support strings. NOT counsel
+  // text (that is consent-copy.ts) — PROVISIONAL, needs review before ship.
+  consentLoadingLabel: 'Checking MindMate consent',
+  consentLoadFailed: 'MindMate couldn’t check your consent status.',
+  consentRetry: 'Retry',
+  consentActionFailed: 'That didn’t go through. Please try again.',
+  policyOpenFailed: 'The privacy policy couldn’t be opened. Please try again.',
+  deleteConfirmBody: 'This deletes all of your MindMate conversations. It can’t be undone.',
+  deleteConfirmCancel: 'Cancel',
+  deleteConfirmDelete: 'Delete',
+  deleteDone: 'All MindMate conversations were deleted.',
+  privacySignedOut: 'Sign in to manage MindMate consent.',
 } as const;

@@ -18,11 +18,14 @@ import { useThemeColors } from '@/lib/use-theme-colors';
 export function ChatInput({
   onSend,
   disabled,
+  initialValue = '',
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
+  /** Seeds the composer on mount (the unsent text after a consent detour). */
+  initialValue?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue);
   const [isFocused, setIsFocused] = useState(false);
   const insets = useSafeAreaInsets();
   const tc = useThemeColors();

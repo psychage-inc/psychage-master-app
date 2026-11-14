@@ -10,7 +10,7 @@
 // the fetch impl and the token reader are injectable so the generator is unit-
 // testable under Vitest (node) without loading native modules.
 
-import { MindMateUnavailableError, SafetyReplacementError } from './errors';
+import { ConsentRequiredError, MindMateUnavailableError, SafetyReplacementError } from './errors';
 import { mapCitation, parseSSEStream } from './streaming';
 import {
   type ApiJsonResponse,
@@ -86,6 +86,7 @@ async function defaultGetAccessToken(): Promise<string | null> {
  * citations + safety verdict once via `onMeta`. Throws:
  *  - MindMateUnavailableError — no session, or a non-JSON platform failure.
  *  - SafetyReplacementError   — server replaced the output (consumer must REPLACE).
+ *  - ConsentRequiredError     — 403 CONSENT_REQUIRED: no current MindMate consent.
  *  - Error                    — a structured handler error (e.g. rate limit).
  *
  * CRISIS path: the server answers with JSON (`isCrisis: true`) and never runs the
@@ -127,11 +128,17 @@ export async function* sendMessage(
     // log the body anywhere (privacy: no chat content leaves the device path).
     const bodyText = await response.text().catch(() => '');
     let parsedError: string | null = null;
+    let parsedCode: unknown;
     try {
-      const parsed = JSON.parse(bodyText) as { error?: unknown };
+      const parsed = JSON.parse(bodyText) as { error?: unknown; code?: unknown };
       if (typeof parsed.error === 'string') parsedError = parsed.error;
+      parsedCode = parsed.code;
     } catch {
       // not JSON → platform failure
+    }
+    // Consent gate (item 5): no current consent → back to the consent flow.
+    if (response.status === 403 && parsedCode === 'CONSENT_REQUIRED') {
+      throw new ConsentRequiredError();
     }
     if (parsedError) throw new Error(parsedError);
     throw new MindMateUnavailableError(`MindMate is unavailable (status ${response.status}).`, {

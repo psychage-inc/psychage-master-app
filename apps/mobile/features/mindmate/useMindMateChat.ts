@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { precheckCrisis } from '@psychage/shared/safety';
 
-import { MindMateUnavailableError, SafetyReplacementError } from './errors';
+import { ConsentRequiredError, MindMateUnavailableError, SafetyReplacementError } from './errors';
 import { sendMessage as defaultSendMessage } from './mindmate-service';
 import { persistExchange as defaultPersistExchange } from './persistence/chat-store';
 import type { ChatMessage, ChatTurnMeta } from './types';
@@ -36,6 +36,12 @@ export interface UseMindMateChatOptions {
    * (which self-no-ops unless the user consented AND is signed in). Fire-and-forget.
    */
   persistImpl?: PersistFn;
+  /**
+   * The server refused the turn with 403 CONSENT_REQUIRED. The refused user message is
+   * removed from the conversation and handed back so the screen can return it to the
+   * composer while the user goes through the consent flow.
+   */
+  onConsentRequired?: (unsentText: string) => void;
 }
 
 export interface UseMindMateChat {
@@ -71,6 +77,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
     onCrisis,
     sendImpl = defaultSendMessage,
     persistImpl = defaultPersistExchange,
+    onConsentRequired,
   } = options;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -186,6 +193,17 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
           return;
         }
 
+        if (err instanceof ConsentRequiredError) {
+          // Nothing reached the model. Take the refused message back out of the
+          // conversation (it returns to the composer) so it is neither shown as sent
+          // nor replayed by retry().
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsgId));
+          lastUserText.current = null;
+          setStatus('idle');
+          onConsentRequired?.(userContent);
+          return;
+        }
+
         // Drop the empty assistant placeholder; show calm error copy. The trailing
         // user message stays so retry() can replay it.
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
@@ -200,7 +218,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
         );
       }
     },
-    [region, sendImpl, persistImpl, triggerCrisis],
+    [region, sendImpl, persistImpl, triggerCrisis, onConsentRequired],
   );
 
   const send = useCallback(
