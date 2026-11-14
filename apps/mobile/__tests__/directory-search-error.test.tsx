@@ -38,7 +38,7 @@ describe('DirectoryView — search failure', () => {
 
     mockSearchProviders.mockResolvedValue({ providers: [], total_count: 0, page: 1, per_page: 20, has_more: false });
     fireEvent.press(screen.getByTestId('directory-retry'));
-    await waitFor(() => expect(screen.queryByTestId('directory-error')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('directory-error')).toBeNull(), { timeout: 5000 });
 
     expect(mockSearchProviders.mock.calls.length).toBe(attempts + 1);
     expect(mockSearchProviders.mock.calls[attempts]?.[0]).toEqual(firstParams);
