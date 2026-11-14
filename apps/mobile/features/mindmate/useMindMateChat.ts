@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { precheckCrisis } from '@psychage/shared/safety';
 
 import { ConsentRequiredError, MindMateUnavailableError, SafetyReplacementError } from './errors';
+import { subscribeLocalMindMateClear } from './local-conversation';
 import { sendMessage as defaultSendMessage } from './mindmate-service';
 import { persistExchange as defaultPersistExchange } from './persistence/chat-store';
 import type { ChatMessage, ChatTurnMeta } from './types';
@@ -99,6 +100,20 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
   // Text of the last backend turn — what retry() re-sends. Crisis turns never set it
   // (they don't hit the backend), so retry can't replay a crisis message.
   const lastUserText = useRef<string | null>(null);
+
+  // "Delete all conversations" / account deletion: drop the in-memory transcript and
+  // the server conversation link so nothing deleted is shown or appended to again.
+  useEffect(
+    () =>
+      subscribeLocalMindMateClear(() => {
+        setMessages([]);
+        setError(null);
+        sessionId.current = undefined;
+        conversationId.current = null;
+        lastUserText.current = null;
+      }),
+    [],
+  );
 
   const triggerCrisis = useCallback(() => {
     // SR-2 delivery (D-01): the inline CrisisCard is driven by this state and is the

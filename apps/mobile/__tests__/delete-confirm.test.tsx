@@ -10,6 +10,7 @@ jest.mock('@/lib/persistence/account-deletion', () => ({
 }));
 
 import DeleteConfirmScreen from '@/app/settings/delete-confirm';
+import { subscribeLocalMindMateClear } from '@/features/mindmate/local-conversation';
 import { CT4_SETTINGS } from '@/features/settings/copy';
 import { storage } from '@/lib/adapters/storage';
 import { resetMomentStore } from '@/lib/moment-store';
@@ -41,6 +42,19 @@ describe('S48 delete-confirm', () => {
     expect(storage.get('mobile:appearance')).toBeNull(); // LOCAL hard-immediate wipe
     expect(resetMock).toHaveBeenCalledTimes(1); // live-instance reset
     expect(clearMock).toHaveBeenCalledTimes(1); // dead session dropped on success
+  });
+
+  it('item 8: account deletion also clears the local MindMate transcript', async () => {
+    const onLocalClear = jest.fn();
+    const unsubscribe = subscribeLocalMindMateClear(onLocalClear);
+    renderWithProviders(<DeleteConfirmScreen />, { haptics: true });
+
+    fireEvent.press(screen.getByTestId('destructive-action'));
+
+    await waitFor(() => expect(router.replace as jest.Mock).toHaveBeenCalledWith('/'));
+    expect(remoteMock).toHaveBeenCalledTimes(1); // delete_account() cascade (account-deletion.ts)
+    expect(onLocalClear).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('failure: surfaces that server data may remain; local still wiped; no silent navigate', async () => {

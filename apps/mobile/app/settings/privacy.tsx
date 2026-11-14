@@ -6,6 +6,7 @@ import { SettingsToggleRow } from '@/components/settings/SettingsToggleRow';
 import { Button } from '@/components/ui/Button';
 import { ScreenShell } from '@/components/ui/ScreenShell';
 import { Text } from '@/components/ui/Text';
+import { MindMatePrivacySection } from '@/features/mindmate/components/MindMatePrivacySection';
 import { CT4_SETTINGS } from '@/features/settings/copy';
 import { dailyRollupReader } from '@/lib/daily-rollup';
 import { getMomentStore } from '@/lib/moment-store';
@@ -26,6 +27,8 @@ import { useSyncConsent } from '@/lib/use-sync-consent';
 // reads the RecordStore and hands a file to the OS share sheet — a user-initiated
 // local export, NOT SR-4 exfiltration. The full hard-immediate account deletion
 // (S47/S48) lives under Account in the hub — this screen no longer duplicates it.
+// The MindMate section (consent + delete all conversations) is self-contained in
+// features/mindmate/components/MindMatePrivacySection.
 export default function PrivacyScreen() {
   const t = CT4_SETTINGS.privacy;
   // Which export is in flight (null = idle) — drives the pressed button's spinner.
@@ -79,6 +82,12 @@ export default function PrivacyScreen() {
             onValueChange={setConsent}
             testID="sync-consent-toggle"
           />
+        </SettingsSection>
+
+        {/* Settings > Privacy > MindMate (compliance item 6): consent off-switch +
+            delete all MindMate conversations. */}
+        <SettingsSection title="MindMate">
+          <MindMatePrivacySection />
         </SettingsSection>
 
         <View className="gap-1">

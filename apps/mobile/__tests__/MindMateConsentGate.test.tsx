@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Component, type ReactNode } from 'react';
 import { Linking } from 'react-native';
 
@@ -20,6 +20,7 @@ import {
   MINDMATE_SESSION_GREETING,
 } from '@/features/mindmate/consent-copy';
 import { ConsentRequiredError } from '@/features/mindmate/errors';
+import { clearLocalMindMateConversations } from '@/features/mindmate/local-conversation';
 import type { sendMessage } from '@/features/mindmate/mindmate-service';
 
 import { renderWithProviders } from './_helpers';
@@ -322,5 +323,23 @@ describe('MindMate session greeting (item 5)', () => {
     fireEvent.press(screen.getByTestId('mindmate-send'));
     await waitFor(() => expect(screen.getByText('ok')).toBeTruthy());
     expect(screen.getByTestId('mindmate-greeting')).toBeTruthy();
+  });
+});
+
+describe('local MindMate copy clearing (items 6 + 8)', () => {
+  beforeEach(() => {
+    mockSession = null;
+  });
+
+  it('clearLocalMindMateConversations wipes the mounted transcript', async () => {
+    render(fakeApi('current'));
+    fireEvent.changeText(screen.getByTestId('mindmate-input'), 'what is sleep hygiene');
+    fireEvent.press(screen.getByTestId('mindmate-send'));
+    await waitFor(() => expect(screen.getByText('what is sleep hygiene')).toBeTruthy());
+
+    act(() => clearLocalMindMateConversations());
+
+    expect(screen.queryByText('what is sleep hygiene')).toBeNull();
+    expect(screen.queryByText('ok')).toBeNull();
   });
 });
