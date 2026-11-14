@@ -19,6 +19,12 @@ const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8
 
 const LOCATION_PERMS = ['android.permission.ACCESS_COARSE_LOCATION', 'android.permission.ACCESS_FINE_LOCATION'];
 
+describe('app version', () => {
+  it('ships 1.1.0 — the version the server minimum (get_min_app_version) is checked against', () => {
+    expect(appJson.expo.version).toBe('1.1.0');
+  });
+});
+
 describe('device location is not used', () => {
   it('has no expo-location dependency or config plugin', () => {
     expect(pkg.dependencies['expo-location']).toBeUndefined();

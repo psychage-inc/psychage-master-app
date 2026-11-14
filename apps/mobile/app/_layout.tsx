@@ -20,6 +20,7 @@ import { Text } from '@/components/ui/Text';
 // at module init, which runs the SR-13 migrator before any consumer reads isTierEnabled.
 import '@/lib/adapters/featureFlags';
 
+import { MinVersionGate } from '@/features/app-gate/MinVersionGate';
 import { AuthProvider, useAuth } from '@/features/auth';
 import { useAuthDeepLinks } from '@/lib/auth/deep-link';
 import { useSessionRevalidation } from '@/lib/auth/session-revalidate';
@@ -128,24 +129,28 @@ export default function RootLayout() {
       <HapticProvider>
         <AppearanceSync />
         <ThemedStatusBar />
-        {/* App-wide auth context (web parity): one provider at the root so every
-            screen — Settings included — reads the same hydrated session. Replaces
-            the former (auth)-group-local provider that left the rest of the app
-            seeing session:null. */}
-        <AuthProvider>
-          <AuthEffects />
-          <View className="flex-1 w-full max-w-[600px] mx-auto overflow-hidden bg-background dark:bg-background-dark sm:border-x sm:border-border/20 dark:sm:border-border-dark/20">
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: reduced ? 'fade' : 'slide_from_right',
-                fullScreenGestureEnabled: true,
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-          </View>
-        </AuthProvider>
+        {/* Minimum-app-version gate: no app route renders until the installed
+            version is at or above get_min_app_version (crisis help stays visible). */}
+        <MinVersionGate>
+          {/* App-wide auth context (web parity): one provider at the root so every
+              screen — Settings included — reads the same hydrated session. Replaces
+              the former (auth)-group-local provider that left the rest of the app
+              seeing session:null. */}
+          <AuthProvider>
+            <AuthEffects />
+            <View className="flex-1 w-full max-w-[600px] mx-auto overflow-hidden bg-background dark:bg-background-dark sm:border-x sm:border-border/20 dark:sm:border-border-dark/20">
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: reduced ? 'fade' : 'slide_from_right',
+                  fullScreenGestureEnabled: true,
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+            </View>
+          </AuthProvider>
+        </MinVersionGate>
       </HapticProvider>
     </QueryClientProvider>
   );
