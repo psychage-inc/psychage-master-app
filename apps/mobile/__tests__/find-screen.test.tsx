@@ -34,8 +34,9 @@ describe('S28 Find — prototype port', () => {
     onlineMock.mockReturnValue(true);
     renderWithProviders(<FindScreen />, { haptics: true, query: true });
     expect(screen.getByText('Find care')).toBeTruthy();
-    expect(screen.getByText('Use my location')).toBeTruthy();
-    expect(screen.getByText('Enter my state instead')).toBeTruthy();
+    expect(screen.getByText('Choose my state')).toBeTruthy();
+    // Device location is never requested — there is no location affordance.
+    expect(screen.queryByText(/use my location/i)).toBeNull();
   });
 
   // PR-061 — offline renders as an overlay ON TOP of the still-mounted wizard, so a
@@ -61,7 +62,7 @@ describe('S28 Find — prototype port', () => {
 
     renderWithProviders(<FindScreen />, { haptics: true, query: true });
     // Walk one step into the wizard.
-    fireEvent.press(screen.getByText('Enter my state instead'));
+    fireEvent.press(screen.getByText('Choose my state'));
     expect(screen.getByText('Which state?')).toBeTruthy();
 
     // Blip offline: fallback overlays, wizard stays mounted underneath —

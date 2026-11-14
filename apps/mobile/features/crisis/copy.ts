@@ -18,9 +18,5 @@ export const CRISIS_COPY = {
     `We don't yet have verified helplines for ${regionName}. Your local emergency number works right now.`,
   // §8 [FINAL] region switch link. Region is interpolated.
   notInRegion: (regionName: string): string => `Not in ${regionName}?`,
-  // NEW (precise-location opt-in) — PENDING Dr. Dobson review (crisis copy is a required
-  // review surface, CLAUDE.md §7). Non-diagnostic, plain register. Opt-in only: tapping
-  // requests permission on demand; it never auto-prompts and never gates crisis content.
-  usePreciseLocation: 'Use my precise location',
   back: 'Back',
 } as const;

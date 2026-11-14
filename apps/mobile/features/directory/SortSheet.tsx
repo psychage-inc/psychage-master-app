@@ -7,30 +7,28 @@ import { useThemeColors } from '@/lib/use-theme-colors';
 import { DIRECTORY_COPY } from './copy';
 
 // Directory sort sheet. Renders UNDER the GlobalHeader so the Help-now pill stays
-// reachable (SR-2). Options map to search_providers_v3 sort_by; "Nearest" only
-// appears on a geo ("near me") search. Sorting is order, never a quality ranking.
+// reachable (SR-2). Options map to search_providers_v3 sort_by. There is no
+// distance sort — the app never reads device location. Sorting is order, never a
+// quality ranking.
 
 const t = DIRECTORY_COPY;
 
-export type SortOption = 'relevance' | 'name' | 'distance';
+export type SortOption = 'relevance' | 'name';
 
 export function SortSheet({
   visible,
   value,
-  geoEnabled,
   onSelect,
   onClose,
 }: {
   visible: boolean;
   value: SortOption;
-  geoEnabled: boolean;
   onSelect: (next: SortOption) => void;
   onClose: () => void;
 }) {
   const tc = useThemeColors();
   const options: { key: SortOption; label: string }[] = [
     { key: 'relevance', label: t.sortRelevance },
-    ...(geoEnabled ? [{ key: 'distance' as const, label: t.sortNearest }] : []),
     { key: 'name', label: t.sortName },
   ];
 
