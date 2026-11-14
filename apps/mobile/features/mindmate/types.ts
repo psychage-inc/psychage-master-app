@@ -57,7 +57,11 @@ export interface ChatMessage {
   content: string;
   /** True while tokens are still arriving — drives the streaming cursor. */
   isStreaming?: boolean;
-  /** Set on the assistant turn the server flagged CRISIS. */
+  /**
+   * Set on both messages of an exchange flagged CRISIS (client pre-check: the user
+   * message; server verdict: the user message AND the crisis reply). Flagged messages
+   * are excluded from the history sent on later turns.
+   */
   isCrisis?: boolean;
   citations?: Citation[];
 }

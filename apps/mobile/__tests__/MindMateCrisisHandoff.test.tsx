@@ -160,7 +160,7 @@ describe('MindMate crisis handoff (D-01 / SR-2)', () => {
       { id: 'u1', role: 'user', content: 'hello' },
       { id: 'a1', role: 'assistant', content: 'Hi — what would you like to understand?' },
     ];
-    renderWithProviders(<MessageList messages={messages} />, { haptics: true });
+    renderWithProviders(<MessageList messages={messages} onHelpNow={jest.fn()} />, { haptics: true });
 
     // A user cell must never be recycled into an assistant row (and vice versa): the
     // two bubbles carry different NativeWind style sets, and a post-mount style upgrade

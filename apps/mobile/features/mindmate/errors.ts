@@ -36,3 +36,15 @@ export class SafetyReplacementError extends Error {
     this.name = 'SafetyReplacementError';
   }
 }
+
+/**
+ * The server's consent gate refused the turn (403 `{ code: 'CONSENT_REQUIRED' }`):
+ * the user has no current MindMate consent. Nothing was sent to the model. The
+ * consumer returns the user to the consent flow and keeps the unsent text.
+ */
+export class ConsentRequiredError extends Error {
+  constructor() {
+    super('MindMate consent is required before sending messages.');
+    this.name = 'ConsentRequiredError';
+  }
+}

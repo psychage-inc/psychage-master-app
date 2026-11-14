@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { MindMateUnavailableError, SafetyReplacementError } from '@/features/mindmate/errors';
+import {
+  ConsentRequiredError,
+  MindMateUnavailableError,
+  SafetyReplacementError,
+} from '@/features/mindmate/errors';
 import { sendMessage } from '@/features/mindmate/mindmate-service';
 import type { ChatTurnMeta } from '@/features/mindmate/types';
 
@@ -157,5 +161,34 @@ describe('sendMessage (backend wiring)', () => {
 
     const gen = sendMessage(INPUT, () => {}, { ...TOKEN_DEPS, fetchImpl: fetchImpl as never });
     await expect(gen.next()).rejects.toThrow('Rate limit exceeded');
+  });
+
+  it('maps 403 { code: CONSENT_REQUIRED } to ConsentRequiredError (item 5 consent gate)', async () => {
+    const fetchImpl = async () =>
+      fakeResponse({
+        ok: false,
+        status: 403,
+        contentType: 'application/json',
+        text: JSON.stringify({ code: 'CONSENT_REQUIRED', error: 'Consent required' }),
+      });
+
+    const gen = sendMessage(INPUT, () => {}, { ...TOKEN_DEPS, fetchImpl: fetchImpl as never });
+    await expect(gen.next()).rejects.toBeInstanceOf(ConsentRequiredError);
+  });
+
+  it('a 403 without CONSENT_REQUIRED is not treated as a consent refusal', async () => {
+    const fetchImpl = async () =>
+      fakeResponse({
+        ok: false,
+        status: 403,
+        contentType: 'application/json',
+        text: JSON.stringify({ error: 'Forbidden' }),
+      });
+
+    const gen = sendMessage(INPUT, () => {}, { ...TOKEN_DEPS, fetchImpl: fetchImpl as never });
+    const err = await gen.next().catch((e: unknown) => e);
+    expect(err).not.toBeInstanceOf(ConsentRequiredError);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toBe('Forbidden');
   });
 });

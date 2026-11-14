@@ -4,16 +4,18 @@
 // data for the rest of the session and their next save() re-persists the whole
 // stale snapshot — silently resurrecting what the user asked to erase (PR-013).
 //
-// Two families:
+// Three families:
 //   1. Record-store singletons (reset = drop instance; next getXxxStore()
 //      re-constructs and re-load()s from the now-empty disk).
 //   2. Reactive persistence caches (reload = null the cache + notify
 //      subscribers, so mounted UI re-renders from the empty disk immediately).
+//   3. In-memory-only user data with no disk copy: a mounted MindMate transcript.
 //
 // Keep in sync when a new live store or reactive cache lands — the wipe test
 // (__tests__/wipe-registry-coverage.test.ts) documents the expected set.
 
 import { reloadBookmarksFromDisk } from '@/features/bookmarks/store';
+import { clearLocalMindMateConversations } from '@/features/mindmate/local-conversation';
 import { reloadChatConsentFromDisk } from '@/features/mindmate/persistence/chat-consent';
 import { resetClarityJournalStore } from '@/lib/clarity-journal-store';
 import { resetClarityStore } from '@/lib/clarity-store';
@@ -45,4 +47,6 @@ export function resetLiveState(): void {
   reloadReadingTextSizeFromDisk();
   reloadRecentlyViewedFromDisk();
   reloadSyncConsentFromDisk();
+  // In-memory only.
+  clearLocalMindMateConversations();
 }

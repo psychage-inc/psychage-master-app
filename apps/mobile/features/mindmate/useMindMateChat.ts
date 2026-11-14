@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { precheckCrisis } from '@psychage/shared/safety';
 
-import { MindMateUnavailableError, SafetyReplacementError } from './errors';
+import { ConsentRequiredError, MindMateUnavailableError, SafetyReplacementError } from './errors';
+import { subscribeLocalMindMateClear } from './local-conversation';
 import { sendMessage as defaultSendMessage } from './mindmate-service';
 import { persistExchange as defaultPersistExchange } from './persistence/chat-store';
 import type { ChatMessage, ChatTurnMeta } from './types';
@@ -36,6 +37,12 @@ export interface UseMindMateChatOptions {
    * (which self-no-ops unless the user consented AND is signed in). Fire-and-forget.
    */
   persistImpl?: PersistFn;
+  /**
+   * The server refused the turn with 403 CONSENT_REQUIRED. The refused user message is
+   * removed from the conversation and handed back so the screen can return it to the
+   * composer while the user goes through the consent flow.
+   */
+  onConsentRequired?: (unsentText: string) => void;
 }
 
 export interface UseMindMateChat {
@@ -56,9 +63,12 @@ export interface UseMindMateChat {
   retry: () => Promise<void>;
 }
 
+// History sent on later turns. Crisis-flagged messages never go back to the model:
+// neither a user message the client pre-check or the server flagged, nor the server's
+// crisis reply (item 6 — the flagged exchange stays out of every later payload).
 function toApi(messages: ChatMessage[]): ApiMessage[] {
   return messages
-    .filter((m) => m.content.trim().length > 0)
+    .filter((m) => m.isCrisis !== true && m.content.trim().length > 0)
     .map((m) => ({ role: m.role, content: m.content }));
 }
 
@@ -68,6 +78,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
     onCrisis,
     sendImpl = defaultSendMessage,
     persistImpl = defaultPersistExchange,
+    onConsentRequired,
   } = options;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -90,6 +101,20 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
   // (they don't hit the backend), so retry can't replay a crisis message.
   const lastUserText = useRef<string | null>(null);
 
+  // "Delete all conversations" / account deletion: drop the in-memory transcript and
+  // the server conversation link so nothing deleted is shown or appended to again.
+  useEffect(
+    () =>
+      subscribeLocalMindMateClear(() => {
+        setMessages([]);
+        setError(null);
+        sessionId.current = undefined;
+        conversationId.current = null;
+        lastUserText.current = null;
+      }),
+    [],
+  );
+
   const triggerCrisis = useCallback(() => {
     // SR-2 delivery (D-01): the inline CrisisCard is driven by this state and is the
     // guaranteed path — set it FIRST. The navigation handoff below is best-effort on
@@ -107,7 +132,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
   // Shared by send (fresh turn) and retry (replay) so the streaming, persistence and
   // calm-error handling stay identical between the two paths.
   const runTurn = useCallback(
-    async (apiMessages: ApiMessage[], assistantId: string, userContent: string) => {
+    async (apiMessages: ApiMessage[], assistantId: string, userMsgId: string, userContent: string) => {
       setStatus('sending');
 
       // Captured for the post-turn persist (kept out of React state — needed
@@ -119,8 +144,11 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
         turnMeta = meta;
         sessionId.current = meta.sessionId || sessionId.current;
         if (meta.isCrisis) {
+          // Flag BOTH sides of the exchange so toApi() keeps them out of later turns.
           setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, isCrisis: true } : m)),
+            prev.map((m) =>
+              m.id === assistantId || m.id === userMsgId ? { ...m, isCrisis: true } : m,
+            ),
           );
           triggerCrisis();
         }
@@ -180,6 +208,17 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
           return;
         }
 
+        if (err instanceof ConsentRequiredError) {
+          // Nothing reached the model. Take the refused message back out of the
+          // conversation (it returns to the composer) so it is neither shown as sent
+          // nor replayed by retry().
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsgId));
+          lastUserText.current = null;
+          setStatus('idle');
+          onConsentRequired?.(userContent);
+          return;
+        }
+
         // Drop the empty assistant placeholder; show calm error copy. The trailing
         // user message stays so retry() can replay it.
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
@@ -194,7 +233,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
         );
       }
     },
-    [region, sendImpl, persistImpl, triggerCrisis],
+    [region, sendImpl, persistImpl, triggerCrisis, onConsentRequired],
   );
 
   const send = useCallback(
@@ -211,7 +250,8 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
       // Statically imported so this safety path can never depend on a runtime
       // module fetch resolving.
       if (precheckCrisis(text)) {
-        setMessages((prev) => [...prev, userMsg]);
+        // Flagged so it never rides along in a later turn's history (toApi).
+        setMessages((prev) => [...prev, { ...userMsg, isCrisis: true }]);
         triggerCrisis();
         return;
       }
@@ -224,7 +264,7 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
         userMsg,
         { id: assistantId, role: 'assistant', content: '', isStreaming: true },
       ]);
-      await runTurn(apiMessages, assistantId, text);
+      await runTurn(apiMessages, assistantId, userMsg.id, text);
     },
     [status, runTurn, triggerCrisis],
   );
@@ -240,12 +280,14 @@ export function useMindMateChat(options: UseMindMateChatOptions = {}): UseMindMa
     // was dropped on error) — re-stream that conversation with a fresh placeholder and
     // no new user message, so the backend sees the same turn, not a duplicate.
     const apiMessages = toApi(messagesRef.current);
+    const trailingUser = [...messagesRef.current].reverse().find((m) => m.role === 'user');
+    if (!trailingUser) throw new Error('MindMate retry: no user message to replay.');
     const assistantId = nextId();
     setMessages((prev) => [
       ...prev,
       { id: assistantId, role: 'assistant', content: '', isStreaming: true },
     ]);
-    await runTurn(apiMessages, assistantId, text);
+    await runTurn(apiMessages, assistantId, trailingUser.id, text);
   }, [status, runTurn]);
 
   return { messages, status, error, crisisActive, needsSignIn, send, retry };
