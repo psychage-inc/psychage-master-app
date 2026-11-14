@@ -16,7 +16,6 @@ export interface FilterDraft {
   specialtySlugs: string[];
   telehealth: boolean;
   inPerson: boolean;
-  accepting: boolean;
 }
 
 function Chip({
@@ -75,7 +74,7 @@ export function DirectoryFilters({
     }));
 
   const clearAll = () =>
-    setDraft({ state: '', specialtySlugs: [], telehealth: false, inPerson: false, accepting: false });
+    setDraft({ state: '', specialtySlugs: [], telehealth: false, inPerson: false });
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -97,7 +96,6 @@ export function DirectoryFilters({
               <View className="flex-row flex-wrap gap-2">
                 <Chip label="Telehealth" selected={draft.telehealth} onPress={() => setDraft((d) => ({ ...d, telehealth: !d.telehealth }))} />
                 <Chip label="In person" selected={draft.inPerson} onPress={() => setDraft((d) => ({ ...d, inPerson: !d.inPerson }))} />
-                <Chip label="Accepting patients" selected={draft.accepting} onPress={() => setDraft((d) => ({ ...d, accepting: !d.accepting }))} />
               </View>
             </View>
 

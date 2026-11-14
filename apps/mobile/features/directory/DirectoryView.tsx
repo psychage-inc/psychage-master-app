@@ -39,7 +39,6 @@ const EMPTY_FILTERS: FilterDraft = {
   specialtySlugs: [],
   telehealth: false,
   inPerson: false,
-  accepting: false,
 };
 
 // `embedded` = rendered as the Find tab root (the tabs GlobalHeader already sits
@@ -92,7 +91,6 @@ export function DirectoryView({
       specialty_slugs: filters.specialtySlugs.length ? filters.specialtySlugs : undefined,
       telehealth: filters.telehealth || undefined,
       in_person: filters.inPerson || undefined,
-      accepting_patients: filters.accepting || undefined,
       sort_by: sort,
       per_page: 20,
     }),
@@ -105,16 +103,15 @@ export function DirectoryView({
 
   const providers = active ? search.providers : (featured.data ?? []);
   const loading = active ? search.isLoading : featured.isLoading;
-  // searchProviders deliberately THROWS when the backend is unreachable (a genuine
-  // zero-result resolves to an empty list), so an outage must render as an error
-  // with a retry — never as "No matching providers".
+  // searchProviders THROWS when the RPC fails (a genuine zero-result resolves to an
+  // empty list), so an outage renders as an error with a retry that re-runs the
+  // same search — never as "No matching providers" and never as other data.
   const errored = active && search.isError;
   const filterCount =
     (filters.state ? 1 : 0) +
     filters.specialtySlugs.length +
     (filters.telehealth ? 1 : 0) +
-    (filters.inPerson ? 1 : 0) +
-    (filters.accepting ? 1 : 0);
+    (filters.inPerson ? 1 : 0);
 
   // Quick specialty suggestions under the search box — tapping one runs a fast
   // slug-scoped search instead of a free-text scan. Hidden once a specialty is set.

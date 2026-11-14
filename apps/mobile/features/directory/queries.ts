@@ -6,20 +6,20 @@
 // anon SELECT restricted to status IN ('active','seeded')) — SR-4 compliant, this
 // is NOT symptom / mood / navigator state.
 //
-// Cascade: search_providers_v3 RPC (server-side filtered + paginated + geo) →
-// direct query (location-pre-scoped for the 423k-row table). NO mock-data fallback:
-// when nothing can be reached we return an EMPTY result, never a fabricated entry
-// (directory fidelity rule). The web's cascade is mirrored otherwise, verbatim.
+// Search is ONE path: the search_providers_v3 RPC (server-side filtered +
+// paginated). There is no direct-query or mock fallback — when the RPC fails,
+// searchProviders throws and the directory shows an error state with a retry,
+// never other data (mirrors the web decision). Location scope is State + City
+// only; no coordinates are ever sent.
 //
 // The RPC times out if called with no scope at all (423k rows). Callers therefore
-// query only once at least one filter / text / geo is set; the default browse
-// surface uses getFeaturedProviders (a small, fast, ordered slice).
+// query only once at least one filter / text is set; the default browse surface
+// uses getFeaturedProviders (a small, fast, ordered slice).
 // =============================================================================
 
 import { getSupabaseClient } from '@/lib/supabase';
 
 import { mapProviderRow, mapRpcRow, mapToCardData } from './mapping';
-import { isProviderVerified, tierRank } from './trust';
 import type {
   CulturalCompetency,
   InsurancePlan,
@@ -81,96 +81,46 @@ const EMPTY = (page: number, perPage: number): ProviderCardSearchResult => ({
   has_more: false,
 });
 
-// --- client-side filter / sort (direct-query path) — ported verbatim ------------
-
-function filterProviderCards(cards: ProviderCardData[], params: ProviderSearchParams): ProviderCardData[] {
-  return cards.filter((p) => {
-    if (params.query) {
-      const q = params.query.toLowerCase();
-      const searchable = [
-        p.display_name,
-        p.practice_name,
-        p.bio,
-        p.credentials_suffix,
-        p.provider_type_label,
-        p.primary_city,
-        p.primary_state,
-        ...p.specialty_tags.map((s) => s.label),
-        ...p.language_tags.map((l) => l.label),
-        ...p.insurance_tags.map((i) => `${i.carrier} ${i.name}`),
-      ]
-        .filter((s): s is string => Boolean(s))
-        .map((s) => s.toLowerCase());
-      if (!searchable.some((s) => s.includes(q))) return false;
-    }
-    if (params.specialty_slugs?.length) {
-      const slugs = p.specialty_tags.map((s) => s.slug);
-      if (!params.specialty_slugs.some((s) => slugs.includes(s))) return false;
-    }
-    if (params.state && p.primary_state?.toUpperCase() !== params.state.toUpperCase()) return false;
-    if (params.city && !p.primary_city?.toLowerCase().includes(params.city.toLowerCase())) return false;
-    if (params.telehealth && !p.telehealth_available) return false;
-    if (params.in_person && !p.in_person_available) return false;
-    if (params.accepting_patients && !p.is_accepting_patients) return false;
-    if (params.verification_status === 'verified' && !isProviderVerified(p.status, p.verified_at)) return false;
-    if (params.verification_status === 'listed' && (p.status !== 'seeded' || p.verified_at != null)) return false;
-    return true;
-  });
-}
-
-function sortProviderCards(cards: ProviderCardData[], sortBy?: string): ProviderCardData[] {
-  const sorted = [...cards];
-  if (sortBy === 'name') {
-    sorted.sort((a, b) => a.display_name.localeCompare(b.display_name));
-  } else {
-    sorted.sort((a, b) => {
-      const tierDiff = tierRank(a.tier) - tierRank(b.tier);
-      if (tierDiff !== 0) return tierDiff;
-      const aV = a.verified_at != null || a.status === 'verified' || a.status === 'active';
-      const bV = b.verified_at != null || b.status === 'verified' || b.status === 'active';
-      if (aV && !bV) return -1;
-      if (!aV && bV) return 1;
-      return a.display_name.localeCompare(b.display_name);
-    });
-  }
-  return sorted;
-}
-
-// --- search paths ---------------------------------------------------------------
+// --- search ---------------------------------------------------------------------
 
 type Client = NonNullable<ReturnType<typeof getSupabaseClient>>;
 
-async function searchViaRPC(
-  client: Client,
-  params: ProviderSearchParams,
-  page: number,
-  perPage: number,
-): Promise<ProviderCardSearchResult | null> {
+/**
+ * Build the search_providers_v3 argument object. Coordinates, radius and the
+ * accepting-patients flag are deliberately NOT sent (the keys are omitted, not
+ * nulled): every remaining parameter has a server default, and a later migration
+ * drops those parameters from the function.
+ */
+export function buildSearchRpcArgs(params: ProviderSearchParams, perPage: number, offset: number) {
+  return {
+    p_query: params.query || null,
+    p_provider_type_ids: params.provider_type_ids?.length ? params.provider_type_ids : null,
+    p_specialty_slugs: params.specialty_slugs?.length ? params.specialty_slugs : null,
+    p_language_ids: params.language_ids?.length ? params.language_ids : null,
+    p_competency_ids: params.competency_ids?.length ? params.competency_ids : null,
+    p_insurance_plan_ids: params.insurance_plan_ids?.length ? params.insurance_plan_ids : null,
+    p_telehealth: params.telehealth ?? null,
+    p_in_person: params.in_person ?? null,
+    p_state: params.state || null,
+    p_city: params.city || null,
+    p_verification_status: params.verification_status || null,
+    p_sort: params.sort_by === 'name' ? 'name' : 'relevance',
+    p_limit: perPage,
+    p_offset: offset,
+  };
+}
+
+async function searchViaRPC(client: Client, params: ProviderSearchParams): Promise<ProviderCardSearchResult> {
+  const page = params.page || 1;
+  const perPage = params.per_page || PAGE_SIZE;
   const offset = (page - 1) * perPage;
   const { data, error } = await withTimeout(
-    client.rpc('search_providers_v3', {
-      p_query: params.query || null,
-      p_provider_type_ids: params.provider_type_ids?.length ? params.provider_type_ids : null,
-      p_specialty_slugs: params.specialty_slugs?.length ? params.specialty_slugs : null,
-      p_language_ids: params.language_ids?.length ? params.language_ids : null,
-      p_competency_ids: params.competency_ids?.length ? params.competency_ids : null,
-      p_insurance_plan_ids: params.insurance_plan_ids?.length ? params.insurance_plan_ids : null,
-      p_telehealth: params.telehealth ?? null,
-      p_in_person: params.in_person ?? null,
-      p_accepting: params.accepting_patients ?? null,
-      p_state: params.state || null,
-      p_city: params.city || null,
-      p_verification_status: params.verification_status || null,
-      p_sort: params.sort_by === 'name' ? 'name' : 'relevance',
-      p_limit: perPage,
-      p_offset: offset,
-      p_latitude: params.latitude ?? null,
-      p_longitude: params.longitude ?? null,
-      p_radius_miles: params.radius_miles ?? null,
-    }),
+    client.rpc('search_providers_v3', buildSearchRpcArgs(params, perPage, offset)),
   );
 
-  if (error) return null;
+  // Throw so TanStack Query retries and the UI surfaces `isError` (error state +
+  // retry) — a genuine zero-result resolves with an empty list below instead.
+  if (error) throw new Error(`Provider search failed: ${error.message}`);
 
   const rows = (data || []) as Array<Record<string, unknown> & { total_count?: number }>;
   const totalCount = (rows[0]?.total_count as number | undefined) ?? 0;
@@ -184,95 +134,8 @@ async function searchViaRPC(
   };
 }
 
-async function searchViaDirectQuery(
-  client: Client,
-  params: ProviderSearchParams,
-  page: number,
-  perPage: number,
-): Promise<ProviderCardSearchResult | null> {
-  // Pre-scope by provider_locations when a state/city is set so the 1000-row cap on
-  // the providers query doesn't drop matches from the 423k-row table.
-  let providerIdScope: string[] | null = null;
-  if (params.state || params.city) {
-    let locQuery = client
-      .from('provider_locations')
-      .select('provider_id')
-      .eq('is_primary', true)
-      .limit(5000);
-    if (params.state) locQuery = locQuery.eq('state_province', params.state.toUpperCase());
-    if (params.city) locQuery = locQuery.ilike('city', `%${params.city}%`);
-
-    const { data: locs, error: locErr } = await withTimeout(locQuery);
-    if (locErr) return null;
-    providerIdScope = ((locs as { provider_id: string }[]) || []).map((l) => l.provider_id);
-    if (providerIdScope.length === 0) return EMPTY(page, perPage);
-  }
-
-  let query = client
-    .from('providers')
-    .select(PROVIDER_SELECT)
-    .in('status', ['active', 'seeded'])
-    .order('display_name')
-    .limit(1000);
-
-  if (providerIdScope) query = query.in('id', providerIdScope);
-
-  // Strip PostgREST wildcard/operator chars so user text can't inject filter
-  // conditions into .or() (matches the web's B3-8 sanitisation).
-  if (params.query) {
-    const sanitized = params.query.replace(/[%_.*,()\\]/g, '');
-    if (sanitized) {
-      query = query.or(
-        `display_name.ilike.%${sanitized}%,practice_name.ilike.%${sanitized}%,credentials_suffix.ilike.%${sanitized}%`,
-      );
-    }
-  }
-  if (params.telehealth) query = query.eq('telehealth_available', true);
-  if (params.in_person) query = query.eq('in_person_available', true);
-  if (params.accepting_patients) query = query.eq('is_accepting_patients', true);
-  if (params.provider_type_ids?.length === 1) query = query.eq('provider_type_id', params.provider_type_ids[0]);
-
-  const { data, error } = await withTimeout(query);
-  if (error || !data || data.length === 0) return null;
-
-  const allCards = (data as Record<string, unknown>[]).map((row) => mapToCardData(mapProviderRow(row)));
-  const filtered = filterProviderCards(allCards, params);
-  const sorted = sortProviderCards(filtered, params.sort_by);
-  const offset = (page - 1) * perPage;
-  return {
-    providers: sorted.slice(offset, offset + perPage),
-    total_count: filtered.length,
-    page,
-    per_page: perPage,
-    has_more: offset + perPage < filtered.length,
-  };
-}
-
-async function runSearchCascade(client: Client, params: ProviderSearchParams): Promise<ProviderCardSearchResult> {
-  const page = params.page || 1;
-  const perPage = params.per_page || PAGE_SIZE;
-
-  try {
-    const rpc = await searchViaRPC(client, params, page, perPage);
-    if (rpc) return rpc;
-  } catch {
-    // fall through to direct query
-  }
-  try {
-    const direct = await searchViaDirectQuery(client, params, page, perPage);
-    if (direct) return direct;
-  } catch {
-    // fall through to throw
-  }
-  // Both paths failed to REACH the data (RPC errored AND direct errored). Throw so
-  // TanStack Query retries the transient failure and surfaces `isError` instead of a
-  // silent empty list — a genuine zero-result returns EMPTY above (no throw), so an
-  // empty UI never masks an unreachable backend. Still no mock fallback (fidelity).
-  throw new Error('Provider search is unavailable. Check your connection and try again.');
-}
-
 /**
- * True when at least one narrowing param is set (text / location / geo / service
+ * True when at least one narrowing param is set (text / state / city / service
  * flag / lookup id / verification). The `search_providers_v3` RPC times out on a
  * wholly-unscoped scan of the 423k-row table, so an all-empty scope must never
  * reach the backend. Intentionally BROAD (counts every narrowing field) — it only
@@ -287,8 +150,6 @@ export function hasSearchScope(p: ProviderSearchParams): boolean {
       p.verification_status ||
       p.telehealth ||
       p.in_person ||
-      p.accepting_patients ||
-      p.latitude != null ||
       p.provider_type_ids?.length ||
       p.specialty_slugs?.length ||
       p.language_ids?.length ||
@@ -298,24 +159,23 @@ export function hasSearchScope(p: ProviderSearchParams): boolean {
 }
 
 /**
- * Main search entry. Always resolves (never throws). Returns an empty result when
- * the client is unconfigured, the scope is empty, or both query paths fail — NEVER a
- * placeholder entry. If a city+state combo yields zero, drops state and retries
- * city-only (surfaces dropped_filters), mirroring the web's recovery.
+ * Main search entry: the search_providers_v3 RPC only. THROWS when the client is
+ * unconfigured or the RPC errors (the directory then shows its error state with a
+ * retry); there is no fallback data source. An all-empty scope returns an empty
+ * result without calling the RPC. If a city+state combo yields zero, drops state
+ * and re-runs the same RPC city-only (surfaces dropped_filters).
  */
 export async function searchProviders(params: ProviderSearchParams): Promise<ProviderCardSearchResult> {
-  const page = params.page || 1;
-  const perPage = params.per_page || PAGE_SIZE;
   const client = getSupabaseClient();
-  if (!client) return EMPTY(page, perPage);
+  if (!client) throw new Error('Provider search is unavailable: Supabase is not configured.');
   // Defensive: never issue an unscoped RPC (would time out scanning 423k rows). The
-  // UI already gates on a state, but a future caller could reach here unscoped.
-  if (!hasSearchScope(params)) return EMPTY(page, perPage);
+  // UI already gates on a scope, but a future caller could reach here unscoped.
+  if (!hasSearchScope(params)) return EMPTY(params.page || 1, params.per_page || PAGE_SIZE);
 
-  const result = await runSearchCascade(client, params);
+  const result = await searchViaRPC(client, params);
 
-  if (params.city && params.state && result.total_count === 0 && params.latitude == null) {
-    const retry = await runSearchCascade(client, { ...params, state: undefined });
+  if (params.city && params.state && result.total_count === 0) {
+    const retry = await searchViaRPC(client, { ...params, state: undefined });
     if (retry.total_count > 0) return { ...retry, dropped_filters: ['state'] };
   }
   return result;

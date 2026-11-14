@@ -57,9 +57,11 @@ describe('ProviderCard', () => {
     expect(screen.getByText('Listed')).toBeTruthy(); // seeded → "Listed", not an endorsement
   });
 
-  it('shows the distance only on a geo search', () => {
-    renderWithProviders(<ProviderCard provider={{ ...base, distance_miles: 4.2 }} onPress={() => {}} />, opts);
-    expect(screen.getByText('Psychologist · Reseda, CA · 4.2 mi')).toBeTruthy();
+  it('never shows a distance, even if a row carries one', () => {
+    const withDistance = { ...base, distance_miles: 4.2 } as ProviderCardData;
+    renderWithProviders(<ProviderCard provider={withDistance} onPress={() => {}} />, opts);
+    expect(screen.getByText('Psychologist · Reseda, CA')).toBeTruthy();
+    expect(screen.queryByText(/ mi$/)).toBeNull();
   });
 
   it('omits absent fields without inventing them', () => {

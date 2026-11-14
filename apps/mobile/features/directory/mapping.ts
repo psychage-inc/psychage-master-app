@@ -111,7 +111,6 @@ export function mapRpcRow(row: Record<string, unknown>): ProviderCardData {
     provider_type_label: r.provider_type_label,
     primary_city: r.primary_city,
     primary_state: r.primary_state,
-    distance_miles: (r.distance_miles as number | null | undefined) ?? null,
     specialty_tags: r.specialty_tags || [],
     language_tags: r.language_tags || [],
     competency_tags: r.competency_tags || [],

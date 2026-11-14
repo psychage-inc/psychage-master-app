@@ -43,9 +43,7 @@ export const ProviderCard = memo(function ProviderCard({
 }) {
   const name = cleanDisplayName(provider.display_name) || provider.display_name;
   const place = [provider.primary_city, provider.primary_state].filter(Boolean).join(', ');
-  const distance =
-    provider.distance_miles != null ? `${provider.distance_miles.toFixed(1)} mi` : null;
-  const typeLine = [provider.provider_type_label, place, distance].filter(Boolean).join(' · ');
+  const typeLine = [provider.provider_type_label, place].filter(Boolean).join(' · ');
   const badge = badgeLabel(provider.status, provider.verified_at);
   const specialties = provider.specialty_tags.slice(0, 3);
 
